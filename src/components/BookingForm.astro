@@ -26,6 +26,7 @@ const clientConfig = {
     submitCta: t.booking.submitCta,
     submittingCta: t.booking.submittingCta,
     saturdayNote: t.booking.saturdayNote,
+    datePlaceholder: t.booking.datePlaceholder,
     emailSentNote: t.booking.success.emailSentNote,
     emailPendingNote: t.booking.success.emailPendingNote,
     errors: t.booking.errors,
@@ -114,27 +115,94 @@ const clientConfig = {
               </div>
             </div>
 
-            <!-- 3. Preferred Date & Time Window -->
+            <!-- 3. Preferred Date (Custom Precision Garage DatePicker) & Time Window -->
             <div class="grid gap-4 sm:grid-cols-2">
-              <div>
-                <label for="booking-date" class="block text-sm font-semibold text-text-primary">
+              <div class="relative" id="datepicker-root">
+                <label for="booking-date-trigger" class="block text-sm font-semibold text-text-primary">
                   {t.booking.dateLabel} <span class="text-pro-green">*</span>
                 </label>
                 <span id="date-hint" class="mt-0.5 block text-xs text-text-secondary">
                   {t.booking.dateHint}
                 </span>
-                <input
-                  id="booking-date"
-                  name="preferredDate"
-                  type="date"
-                  required
+
+                <input id="booking-date" name="preferredDate" type="hidden" value="" />
+
+                <button
+                  id="booking-date-trigger"
+                  type="button"
+                  aria-haspopup="dialog"
+                  aria-expanded="false"
+                  aria-controls="booking-datepicker-popover"
                   aria-describedby="date-hint"
                   aria-invalid="false"
                   data-error="date-error"
-                  class="pm-input mt-2"
-                />
+                  class="pm-input mt-2 flex cursor-pointer items-center justify-between gap-2 text-left"
+                >
+                  <span id="booking-date-display" class="truncate text-[#6b7671]">
+                    {t.booking.datePlaceholder}
+                  </span>
+                  <svg
+                    class="h-4.5 w-4.5 shrink-0 text-pro-green"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    aria-hidden="true"
+                  >
+                    <rect x="3" y="4" width="18" height="18" rx="3" />
+                    <path stroke-linecap="round" d="M16 2v4M8 2v4M3 10h18" />
+                  </svg>
+                </button>
+
                 <div id="date-error" class="pm-field-error">
                   {t.booking.errors.dateInvalid}
+                </div>
+
+                <!-- Interactive Calendar Popover -->
+                <div
+                  id="booking-datepicker-popover"
+                  hidden
+                  role="region"
+                  aria-label={t.booking.calendarAriaLabel}
+                  class="absolute left-0 z-30 mt-2 w-[min(92vw,20rem)] rounded-2xl border border-white/15 bg-carbon p-4 shadow-[0_20px_50px_rgba(0,0,0,0.65)]"
+                >
+                  <div class="flex items-center justify-between gap-2">
+                    <button
+                      id="datepicker-prev"
+                      type="button"
+                      aria-label={t.booking.calendarPrevMonth}
+                      class="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border border-white/10 bg-asphalt text-text-primary transition-colors hover:border-pro-green/60 disabled:cursor-not-allowed disabled:opacity-30"
+                    >
+                      ‹
+                    </button>
+                    <span
+                      id="datepicker-month-title"
+                      class="font-display text-lg font-bold tracking-wide text-text-primary uppercase"
+                    />
+                    <button
+                      id="datepicker-next"
+                      type="button"
+                      aria-label={t.booking.calendarNextMonth}
+                      class="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border border-white/10 bg-asphalt text-text-primary transition-colors hover:border-pro-green/60"
+                    >
+                      ›
+                    </button>
+                  </div>
+
+                  <div
+                    id="datepicker-weekdays"
+                    class="mt-3 grid grid-cols-7 gap-1 text-center font-mono text-[11px] font-medium text-text-secondary"
+                  />
+
+                  <div id="datepicker-days" class="mt-1.5 grid grid-cols-7 gap-1" />
+
+                  <div class="mt-3 flex items-center justify-between border-t border-white/8 pt-2.5 font-mono text-[11px] text-text-secondary">
+                    <span class="inline-flex items-center gap-1.5">
+                      <span class="h-1.5 w-1.5 rounded-full bg-pro-green" aria-hidden="true" />
+                      <span>{t.booking.calendarSaturdayLegend}</span>
+                    </span>
+                    <span class="text-white/40">{t.booking.calendarSundayLegend}</span>
+                  </div>
                 </div>
               </div>
 
@@ -518,6 +586,12 @@ const clientConfig = {
 <script>
   import { submitBooking } from '../lib/bookingApi';
   import {
+    buildMonthGrid,
+    formatDisplayDate,
+    formatMonthTitle,
+    getWeekdayLabels,
+  } from '../lib/calendar';
+  import {
     buildWhatsAppBookingUrl,
     getAvailableTimeSlots,
     getTodayLisbonIso,
@@ -536,6 +610,7 @@ const clientConfig = {
       submitCta: string;
       submittingCta: string;
       saturdayNote: string;
+      datePlaceholder: string;
       emailSentNote: string;
       emailPendingNote: string;
       errors: Record<string, string>;
@@ -548,6 +623,16 @@ const clientConfig = {
     let startedAt = Date.now();
 
     const dateInput = document.getElementById('booking-date') as HTMLInputElement;
+    const datepickerRoot = document.getElementById('datepicker-root') as HTMLDivElement;
+    const dateTrigger = document.getElementById('booking-date-trigger') as HTMLButtonElement;
+    const dateDisplay = document.getElementById('booking-date-display') as HTMLSpanElement;
+    const datePopover = document.getElementById('booking-datepicker-popover') as HTMLDivElement;
+    const datePrevBtn = document.getElementById('datepicker-prev') as HTMLButtonElement;
+    const dateNextBtn = document.getElementById('datepicker-next') as HTMLButtonElement;
+    const dateMonthTitle = document.getElementById('datepicker-month-title') as HTMLSpanElement;
+    const dateWeekdaysEl = document.getElementById('datepicker-weekdays') as HTMLDivElement;
+    const dateDaysEl = document.getElementById('datepicker-days') as HTMLDivElement;
+
     const slotSelect = document.getElementById('booking-slot') as HTMLSelectElement;
     const saturdayHelper = document.getElementById('saturday-helper') as HTMLParagraphElement;
     const submitBtn = document.getElementById('booking-submit-btn') as HTMLButtonElement;
@@ -573,10 +658,21 @@ const clientConfig = {
     announcer.classList.add('visually-hidden');
     document.body.append(announcer);
 
-    const setMinDate = () => {
-      dateInput.min = getTodayLisbonIso(new Date());
-    };
-    setMinDate();
+    const todayParts = getTodayLisbonIso(new Date()).split('-').map(Number);
+    const minYear = todayParts[0] ?? 2026;
+    const minMonth = (todayParts[1] ?? 1) - 1;
+    let viewYear = minYear;
+    let viewMonth = minMonth;
+
+    // Render Monday-first weekday headers once
+    dateWeekdaysEl.replaceChildren(
+      ...getWeekdayLabels(config.locale).map((label, idx) => {
+        const span = document.createElement('span');
+        span.textContent = label;
+        if (idx === 6) span.className = 'text-white/35';
+        return span;
+      }),
+    );
 
     const linkError = (el: HTMLElement, shown: boolean) => {
       const errorId = el.dataset.error;
@@ -631,28 +727,133 @@ const clientConfig = {
       }
 
       if (isSunday) {
-        dateInput.setCustomValidity(config.copy.errors.dateSunday ?? 'Closed on Sunday');
-        setFieldInvalid(dateInput, config.copy.errors.dateSunday);
+        setFieldInvalid(dateTrigger, config.copy.errors.dateSunday);
         announcer.textContent = config.copy.errors.dateSunday ?? '';
       } else if (iso < getTodayLisbonIso(new Date())) {
-        dateInput.setCustomValidity(config.copy.errors.datePast ?? 'Past date');
-        setFieldInvalid(dateInput, config.copy.errors.datePast);
+        setFieldInvalid(dateTrigger, config.copy.errors.datePast);
         announcer.textContent = config.copy.errors.datePast ?? '';
       } else {
-        dateInput.setCustomValidity('');
-        clearFieldInvalid(dateInput);
+        clearFieldInvalid(dateTrigger);
+        dateTrigger.classList.add('user-valid-fallback');
       }
     };
 
-    dateInput.addEventListener('change', updateSlotsForDate);
+    const closeDatepicker = (restoreFocus = false) => {
+      datePopover.hidden = true;
+      dateTrigger.setAttribute('aria-expanded', 'false');
+      if (restoreFocus) dateTrigger.focus();
+    };
+
+    const renderCalendar = () => {
+      const todayIso = getTodayLisbonIso(new Date());
+      dateMonthTitle.textContent = formatMonthTitle(viewYear, viewMonth, config.locale);
+      datePrevBtn.disabled = viewYear < minYear || (viewYear === minYear && viewMonth <= minMonth);
+
+      const cells = buildMonthGrid(viewYear, viewMonth, todayIso);
+      const fragment = document.createDocumentFragment();
+
+      for (const cell of cells) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.dataset.isoDate = cell.isoDate;
+        btn.disabled = cell.disabled;
+
+        const isSelected = dateInput.value === cell.isoDate;
+        const baseClasses =
+          'relative flex h-9 w-full flex-col items-center justify-center rounded-lg text-xs font-semibold transition-colors';
+
+        if (isSelected) {
+          btn.className = `${baseClasses} bg-pro-green text-asphalt font-bold`;
+        } else if (cell.disabled) {
+          btn.className = `${baseClasses} cursor-not-allowed text-white/22 ${cell.isSunday ? 'line-through' : ''}`;
+        } else {
+          const monthTone = cell.inCurrentMonth ? 'text-text-primary' : 'text-text-secondary/50';
+          const todayRing = cell.isToday ? 'ring-1 ring-pro-green/70' : '';
+          btn.className = `${baseClasses} cursor-pointer ${monthTone} ${todayRing} hover:bg-pro-green/20 hover:text-text-primary`;
+        }
+
+        const numSpan = document.createElement('span');
+        numSpan.textContent = String(cell.dayNumber);
+        btn.append(numSpan);
+
+        if (cell.isSaturday && !cell.disabled && !isSelected) {
+          const satDot = document.createElement('span');
+          satDot.className = 'mt-0.5 h-1 w-1 rounded-full bg-pro-green';
+          satDot.setAttribute('aria-hidden', 'true');
+          btn.append(satDot);
+        }
+
+        if (!cell.disabled) {
+          btn.addEventListener('click', () => {
+            dateInput.value = cell.isoDate;
+            dateDisplay.textContent = formatDisplayDate(cell.isoDate, config.locale);
+            dateDisplay.classList.remove('text-[#6b7671]');
+            dateDisplay.classList.add('text-text-primary');
+            updateSlotsForDate();
+            closeDatepicker(true);
+          });
+        }
+
+        fragment.append(btn);
+      }
+
+      dateDaysEl.replaceChildren(fragment);
+    };
+
+    const openDatepicker = () => {
+      if (dateInput.value) {
+        const [y, m] = dateInput.value.split('-').map(Number);
+        if (y && m) {
+          viewYear = y;
+          viewMonth = m - 1;
+        }
+      }
+      renderCalendar();
+      datePopover.hidden = false;
+      dateTrigger.setAttribute('aria-expanded', 'true');
+    };
+
+    dateTrigger.addEventListener('click', () => {
+      if (datePopover.hidden) {
+        openDatepicker();
+      } else {
+        closeDatepicker();
+      }
+    });
+
+    datePrevBtn.addEventListener('click', () => {
+      viewMonth -= 1;
+      if (viewMonth < 0) {
+        viewMonth = 11;
+        viewYear -= 1;
+      }
+      renderCalendar();
+    });
+
+    dateNextBtn.addEventListener('click', () => {
+      viewMonth += 1;
+      if (viewMonth > 11) {
+        viewMonth = 0;
+        viewYear += 1;
+      }
+      renderCalendar();
+    });
+
+    document.addEventListener('click', (event) => {
+      if (!datePopover.hidden && !datepickerRoot.contains(event.target as Node)) {
+        closeDatepicker();
+      }
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && !datePopover.hidden) {
+        closeDatepicker(true);
+      }
+    });
 
     // Sync ARIA state on blur / input without premature errors
     form.querySelectorAll<HTMLInputElement | HTMLSelectElement>('input[data-error], select[data-error]').forEach((field) => {
       field.addEventListener('blur', () => {
-        if (field === dateInput && field.value) {
-          updateSlotsForDate();
-          return;
-        }
         const invalid = field.matches(':user-invalid') || !field.validity.valid;
         if (field.value.trim() !== '' || field.type === 'checkbox') {
           if (invalid) {
@@ -726,6 +927,7 @@ const clientConfig = {
     form.addEventListener('submit', async (event) => {
       event.preventDefault();
       fallbackBanner.hidden = true;
+      closeDatepicker();
 
       const rawInput = collectInput();
       const validation = validateBookingInput(rawInput, getTodayLisbonIso(new Date()));
@@ -747,7 +949,7 @@ const clientConfig = {
           ['bike', 'booking-bike', config.copy.errors.bikeRequired],
           [
             'preferredDate',
-            'booking-date',
+            'booking-date-trigger',
             validation.errors.preferredDate === 'SUNDAY_CLOSED'
               ? config.copy.errors.dateSunday
               : validation.errors.preferredDate === 'PAST_DATE'
@@ -815,7 +1017,7 @@ const clientConfig = {
             : config.copy.emailPendingNote;
           successBike.textContent = payload.bike;
           successServices.textContent = selectedLabels.join(', ');
-          successDate.textContent = `${payload.preferredDate} · ${slotLabel}`;
+          successDate.textContent = `${formatDisplayDate(payload.preferredDate, config.locale)} · ${slotLabel}`;
           successWaLink.href = waConfirmUrl;
 
           form.hidden = true;
@@ -857,8 +1059,16 @@ const clientConfig = {
 
     resetBtn.addEventListener('click', () => {
       form.reset();
+      dateInput.value = '';
+      dateDisplay.textContent = config.copy.datePlaceholder;
+      dateDisplay.classList.add('text-[#6b7671]');
+      dateDisplay.classList.remove('text-text-primary');
+      dateTrigger.classList.remove('user-valid-fallback');
       startedAt = Date.now();
-      setMinDate();
+      viewYear = minYear;
+      viewMonth = minMonth;
+      const afternoonOption = slotSelect.querySelector<HTMLOptionElement>('option[value="afternoon"]');
+      if (afternoonOption) afternoonOption.disabled = false;
       saturdayHelper.hidden = true;
       fallbackBanner.hidden = true;
       form.querySelectorAll<HTMLElement>('[data-error]').forEach(clearFieldInvalid);

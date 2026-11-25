@@ -68,7 +68,13 @@ export interface TranslationDictionary {
     bikeLabel: string;
     bikePlaceholder: string;
     dateLabel: string;
+    datePlaceholder: string;
     dateHint: string;
+    calendarPrevMonth: string;
+    calendarNextMonth: string;
+    calendarSaturdayLegend: string;
+    calendarSundayLegend: string;
+    calendarAriaLabel: string;
     timeSlotLabel: string;
     timeSlotMorning: string;
     timeSlotAfternoon: string;

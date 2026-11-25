@@ -55,6 +55,7 @@ Maintain WCAG AA+ contrast on all surfaces — never place white text over un-sc
     │   ├── en.ts               # English (en)
     │   └── utils.ts            # getTranslations(), getAlternateLocalePath()
     ├── lib/                    # Pure, unit-tested TypeScript modules (keep DOM-free where possible)
+    │   ├── calendar.ts         # Monday-first calendar grid builder (disables past dates & Sundays) + localized formatting
     │   ├── schedule.ts         # Europe/Lisbon open status, Sunday/Saturday slot rules, WhatsApp URL builder
     │   ├── validation.ts       # BookingInput validation & length caps
     │   ├── sheetsSafety.ts     # Google Sheets formula-injection neutralization
