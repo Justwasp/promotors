@@ -1,0 +1,128 @@
+@import "tailwindcss";
+
+@theme {
+  --color-asphalt: #0b0d0e;
+  --color-carbon: #14181a;
+  --color-carbon-elevated: #1c2124;
+  --color-pro-green: #52af3d;
+  --color-pro-green-hover: #63c74d;
+  --color-text-primary: #f5f7f6;
+  --color-text-secondary: #9ba6a1;
+  --color-status-warning: #f59e0b;
+  --color-status-error: #ef4444;
+
+  --font-display: "Barlow Condensed", system-ui, -apple-system, sans-serif;
+  --font-sans: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+}
+
+@layer base {
+  html {
+    background-color: #0b0d0e;
+    color: #f5f7f6;
+    font-family: var(--font-sans);
+    scroll-behavior: smooth;
+    color-scheme: dark;
+  }
+
+  body {
+    background-color: #0b0d0e;
+    color: #f5f7f6;
+    min-height: 100dvh;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::selection {
+    background-color: rgba(82, 175, 61, 0.35);
+    color: #ffffff;
+  }
+
+  :focus-visible {
+    outline: 2px solid #52af3d;
+    outline-offset: 2px;
+  }
+}
+
+/* Native <dialog> scroll containment & backdrop styling (per modern web guidance) */
+dialog:modal {
+  overscroll-behavior: contain;
+}
+
+dialog::backdrop {
+  background-color: rgba(4, 6, 7, 0.78);
+  backdrop-filter: blur(6px);
+  overflow: hidden;
+  overscroll-behavior: contain;
+}
+
+dialog[open] {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Form validation after user interaction (:user-invalid / :user-valid) */
+.pm-input {
+  width: 100%;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background-color: #0f1315;
+  color: #f5f7f6;
+  padding: 0.75rem 0.95rem;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  transition: border-color 150ms ease, box-shadow 150ms ease, background-color 150ms ease;
+}
+
+.pm-input::placeholder {
+  color: #6b7671;
+}
+
+.pm-input:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.pm-input:focus {
+  border-color: #52af3d;
+  box-shadow: 0 0 0 3px rgba(82, 175, 61, 0.18);
+  outline: none;
+}
+
+.pm-input:is(:user-invalid, .user-invalid-fallback) {
+  border-color: #ef4444;
+  background-color: rgba(239, 68, 68, 0.08);
+}
+
+.pm-input:is(:user-valid, .user-valid-fallback) {
+  border-color: rgba(82, 175, 61, 0.55);
+}
+
+.pm-field-error {
+  display: none;
+  color: #fca5a5;
+  font-size: 0.8125rem;
+  margin-top: 0.375rem;
+}
+
+.pm-input:is(:user-invalid, .user-invalid-fallback) + .pm-field-error,
+.pm-field-error[data-visible="true"] {
+  display: block;
+}
+
+.visually-hidden:where(:not(:focus-within, :active)) {
+  position: absolute !important;
+  clip-path: inset(50%) !important;
+  overflow: hidden !important;
+  width: 1px !important;
+  height: 1px !important;
+  margin: -1px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  white-space: nowrap !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}

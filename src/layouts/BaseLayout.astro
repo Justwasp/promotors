@@ -1,0 +1,102 @@
+---
+import '../styles/global.css';
+import { SITE_CONFIG } from '../config/site';
+import type { Locale, TranslationDictionary } from '../i18n/types';
+
+interface Props {
+  locale: Locale;
+  t: TranslationDictionary;
+}
+
+const { locale, t } = Astro.props;
+const canonicalPath = locale === 'en' ? '/en/' : '/';
+const canonicalUrl = `${SITE_CONFIG.siteUrl}${canonicalPath}`;
+const ptUrl = `${SITE_CONFIG.siteUrl}/`;
+const enUrl = `${SITE_CONFIG.siteUrl}/en/`;
+const ogImageUrl = `${SITE_CONFIG.siteUrl}/images/hero-motorcycle.jpg`;
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'MotorcycleRepair',
+  name: SITE_CONFIG.brandName,
+  url: canonicalUrl,
+  image: ogImageUrl,
+  telephone: SITE_CONFIG.contact.phoneDisplay,
+  email: SITE_CONFIG.contact.email,
+  priceRange: '€€',
+  address: {
+    '@type': 'PostalAddress',
+    streetAddress: SITE_CONFIG.address.street,
+    postalCode: SITE_CONFIG.address.postalCode,
+    addressLocality: SITE_CONFIG.address.city,
+    addressCountry: 'PT',
+  },
+  openingHoursSpecification: [
+    {
+      '@type': 'OpeningHoursSpecification',
+      dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+      opens: '09:00',
+      closes: '19:00',
+    },
+    {
+      '@type': 'OpeningHoursSpecification',
+      dayOfWeek: ['Saturday'],
+      opens: '09:00',
+      closes: '13:00',
+    },
+  ],
+  sameAs: [
+    SITE_CONFIG.social.instagramUrl,
+    SITE_CONFIG.social.facebookUrl,
+    SITE_CONFIG.social.partsShopUrl,
+  ],
+};
+---
+
+<!doctype html>
+<html lang={t.meta.langTag}>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{t.meta.title}</title>
+    <meta name="description" content={t.meta.description} />
+    <meta name="theme-color" content="#0B0D0E" />
+
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="canonical" href={canonicalUrl} />
+    <link rel="alternate" hreflang="pt-PT" href={ptUrl} />
+    <link rel="alternate" hreflang="en" href={enUrl} />
+    <link rel="alternate" hreflang="x-default" href={ptUrl} />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content={SITE_CONFIG.brandName} />
+    <meta property="og:locale" content={t.meta.ogLocale} />
+    <meta property="og:title" content={t.meta.title} />
+    <meta property="og:description" content={t.meta.description} />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:image" content={ogImageUrl} />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={t.meta.title} />
+    <meta name="twitter:description" content={t.meta.description} />
+    <meta name="twitter:image" content={ogImageUrl} />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <script is:inline type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+  </head>
+  <body class="bg-asphalt text-text-primary antialiased selection:bg-pro-green/35 pb-20 md:pb-0">
+    <a
+      href="#main-content"
+      class="visually-hidden focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:rounded-lg focus:bg-pro-green focus:px-4 focus:py-2 focus:font-semibold focus:text-asphalt"
+    >
+      {t.nav.skipToContent}
+    </a>
+    <slot />
+  </body>
+</html>
