@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://promotors.pt/sitemap-index.xml
