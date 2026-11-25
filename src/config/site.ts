@@ -14,11 +14,12 @@ export const SITE_CONFIG = {
     landmarkPt: 'Junto à PSP',
     landmarkEn: 'Next to PSP Police Station',
     full: 'R. Joaquim de Almeida, 90A, 2870-342 Montijo, Portugal',
-    googleMapsQuery: 'R.+Joaquim+de+Almeida+90A,+2870-342+Montijo,+Portugal',
+    lat: 38.7063702,
+    lng: -8.9693854,
+    googleMapsQuery: '38.7063702,-8.9693854+(Pro+Motors+Montijo)',
     googleMapsUrl:
-      'https://www.google.com/maps/search/?api=1&query=R.+Joaquim+de+Almeida+90A,+2870-342+Montijo,+Portugal',
-    wazeUrl:
-      'https://waze.com/ul?q=Rua%20Joaquim%20de%20Almeida%2090A%20Montijo%20Portugal&navigate=yes',
+      'https://www.google.com/maps/place/Pro+Motors+-+Mec%C3%A2nica+de+Motos+%26+Pe%C3%A7as+%7C+Montijo/@38.7063702,-8.9693854,17z/data=!4m15!1m8!3m7!1s0xd19399feffcfd77:0xce81a1a17ffc4937!2sR.+Joaquim+de+Almeida+90A,+2870-342+Montijo!3b1!8m2!3d38.7063702!4d-8.9693854!16s%2Fg%2F11c1y5swpk!3m5!1s0xd193936fa58b24d:0x30b39428c05c5de8!8m2!3d38.7063702!4d-8.9693854!16s%2Fg%2F11rd_c9w_j?entry=ttu&g_ep=EgoyMDI2MTEyMy4wIKXMDSoASAFQAw%3D%3D',
+    wazeUrl: 'https://waze.com/ul?ll=38.7063702,-8.9693854&navigate=yes',
   },
   contact: {
     phoneDisplay: '+351 212 314 830',

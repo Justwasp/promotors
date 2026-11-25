@@ -468,19 +468,26 @@ const clientConfig = {
           </h2>
 
           <div class="mt-5 space-y-4 text-sm">
-            <div class="flex items-start gap-3">
+            <a
+              href={SITE_CONFIG.address.googleMapsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="group flex items-start gap-3 rounded-xl transition-colors"
+            >
               <svg class="mt-0.5 h-5 w-5 shrink-0 text-pro-green" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 21s-6-5.686-6-10a6 6 0 1 1 12 0c0 4.314-6 10-6 10Z" />
                 <circle cx="12" cy="11" r="2.2" />
               </svg>
               <div>
-                <p class="font-semibold text-text-primary">{SITE_CONFIG.address.street}</p>
+                <p class="font-semibold text-text-primary transition-colors group-hover:text-pro-green">
+                  {SITE_CONFIG.address.street} <span aria-hidden="true" class="text-xs text-pro-green">↗</span>
+                </p>
                 <p class="text-text-secondary">
                   {SITE_CONFIG.address.postalCode} {SITE_CONFIG.address.city} ·{' '}
                   {locale === 'en' ? SITE_CONFIG.address.landmarkEn : SITE_CONFIG.address.landmarkPt}
                 </p>
               </div>
-            </div>
+            </a>
 
             <div class="flex items-start gap-3">
               <svg class="mt-0.5 h-5 w-5 shrink-0 text-pro-green" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
@@ -555,27 +562,77 @@ const clientConfig = {
               </span>
             </a>
 
-            <a
-              href={SITE_CONFIG.contact.phoneHref}
-              class="flex items-center justify-between rounded-xl border border-white/8 bg-asphalt/70 px-4 py-3 transition-colors hover:border-pro-green/50"
-            >
-              <div>
-                <p class="text-xs text-text-secondary">{t.location.phoneLabel}</p>
-                <p class="font-mono font-semibold text-text-primary">{SITE_CONFIG.contact.phoneDisplay}</p>
-              </div>
-              <span class="text-xs font-semibold text-text-secondary">tel →</span>
-            </a>
+            <div class="flex items-center justify-between gap-2 rounded-xl border border-white/8 bg-asphalt/70 px-4 py-3 transition-colors hover:border-pro-green/50">
+              <a
+                href={SITE_CONFIG.contact.phoneHref}
+                class="group flex min-w-0 flex-1 items-center justify-between gap-2"
+              >
+                <div class="min-w-0">
+                  <p class="text-xs text-text-secondary">{t.location.phoneLabel}</p>
+                  <p id="contact-phone-value" class="truncate font-mono font-semibold text-text-primary group-hover:text-pro-green">
+                    {SITE_CONFIG.contact.phoneDisplay}
+                  </p>
+                </div>
+                <span class="shrink-0 rounded-lg bg-pro-green/15 px-2.5 py-1 text-xs font-bold text-pro-green transition-colors group-hover:bg-pro-green group-hover:text-asphalt">
+                  {t.location.callCta}
+                </span>
+              </a>
+              <span class="pm-copy-wrap shrink-0">
+                <button
+                  type="button"
+                  {...({ command: '--copy', commandfor: 'contact-phone-value' } as Record<string, string>)}
+                  data-copied-label={t.location.copiedLabel}
+                  data-failed-label={t.location.copyFailedLabel}
+                  aria-label={t.location.copyPhoneAria}
+                  class="pm-copy-btn inline-flex cursor-pointer items-center justify-center rounded-lg border border-white/10 bg-carbon text-text-secondary transition-colors hover:border-pro-green/50 hover:text-text-primary"
+                >
+                  <svg class="pm-icon-copy h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <rect x="9" y="9" width="13" height="13" rx="2" />
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                  </svg>
+                  <svg class="pm-icon-check h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                </button>
+                <span class="pm-copy-tip" role="status"></span>
+              </span>
+            </div>
 
-            <a
-              href={SITE_CONFIG.contact.emailHref}
-              class="flex items-center justify-between rounded-xl border border-white/8 bg-asphalt/70 px-4 py-3 transition-colors hover:border-pro-green/50"
-            >
-              <div>
-                <p class="text-xs text-text-secondary">{t.location.emailLabel}</p>
-                <p class="font-mono font-semibold text-text-primary">{SITE_CONFIG.contact.email}</p>
-              </div>
-              <span class="text-xs font-semibold text-text-secondary">@ →</span>
-            </a>
+            <div class="flex items-center justify-between gap-2 rounded-xl border border-white/8 bg-asphalt/70 px-4 py-3 transition-colors hover:border-pro-green/50">
+              <a
+                href={SITE_CONFIG.contact.emailHref}
+                class="group flex min-w-0 flex-1 items-center justify-between gap-2"
+              >
+                <div class="min-w-0">
+                  <p class="text-xs text-text-secondary">{t.location.emailLabel}</p>
+                  <p id="contact-email-value" class="truncate font-mono font-semibold text-text-primary group-hover:text-pro-green">
+                    {SITE_CONFIG.contact.email}
+                  </p>
+                </div>
+                <span class="shrink-0 rounded-lg border border-white/12 bg-carbon px-2.5 py-1 text-xs font-semibold text-text-secondary transition-colors group-hover:border-pro-green/50 group-hover:text-pro-green">
+                  {t.location.emailCta} ↗
+                </span>
+              </a>
+              <span class="pm-copy-wrap shrink-0">
+                <button
+                  type="button"
+                  {...({ command: '--copy', commandfor: 'contact-email-value' } as Record<string, string>)}
+                  data-copied-label={t.location.copiedLabel}
+                  data-failed-label={t.location.copyFailedLabel}
+                  aria-label={t.location.copyEmailAria}
+                  class="pm-copy-btn inline-flex cursor-pointer items-center justify-center rounded-lg border border-white/10 bg-carbon text-text-secondary transition-colors hover:border-pro-green/50 hover:text-text-primary"
+                >
+                  <svg class="pm-icon-copy h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <rect x="9" y="9" width="13" height="13" rx="2" />
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                  </svg>
+                  <svg class="pm-icon-check h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                </button>
+                <span class="pm-copy-tip" role="status"></span>
+              </span>
+            </div>
           </div>
         </div>
       </div>
@@ -1074,6 +1131,105 @@ const clientConfig = {
       form.querySelectorAll<HTMLElement>('[data-error]').forEach(clearFieldInvalid);
       successPanel.hidden = true;
       form.hidden = false;
+    });
+  }
+
+  // Accessible Invoker Commands copy handler (--copy) with progressive click & clipboard fallbacks
+  const copyTimers = new WeakMap<HTMLButtonElement, number>();
+  let lastCopyAnnouncement = '';
+
+  function legacyCopyText(text: string): boolean {
+    const previousFocus = document.activeElement as HTMLElement | null;
+    const field = document.createElement('textarea');
+    field.value = text;
+    field.setAttribute('readonly', '');
+    field.style.cssText = 'position:fixed;inset-block-start:0;opacity:0';
+    document.body.append(field);
+    field.select();
+    try {
+      return document.execCommand('copy');
+    } finally {
+      field.remove();
+      previousFocus?.focus({ preventScroll: true });
+    }
+  }
+
+  function reportCopyResult(button: HTMLButtonElement, ok: boolean) {
+    const tip = button.nextElementSibling as HTMLElement | null;
+    const prevTimer = copyTimers.get(button);
+    if (prevTimer) window.clearTimeout(prevTimer);
+
+    button.removeAttribute('data-copied');
+    button.removeAttribute('data-failed');
+
+    let message = ok
+      ? button.dataset.copiedLabel || 'Copied'
+      : button.dataset.failedLabel || 'Copy failed';
+    if (message === lastCopyAnnouncement) message += '\u00A0';
+    lastCopyAnnouncement = message;
+
+    if (tip) tip.textContent = '';
+    void button.offsetWidth;
+    button.setAttribute(ok ? 'data-copied' : 'data-failed', '');
+    requestAnimationFrame(() => {
+      if (tip) tip.textContent = message;
+    });
+
+    const timer = window.setTimeout(() => {
+      button.removeAttribute('data-copied');
+      button.removeAttribute('data-failed');
+      if (tip) tip.textContent = '';
+    }, 2000);
+    copyTimers.set(button, timer);
+  }
+
+  async function executeCopy(button: HTMLButtonElement, target: HTMLElement) {
+    const text = target.matches('input, textarea')
+      ? (target as HTMLInputElement | HTMLTextAreaElement).value
+      : target.innerText.trim();
+    if (!text) return;
+
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else if (!legacyCopyText(text)) {
+        throw new Error('Copy failed');
+      }
+      reportCopyResult(button, true);
+    } catch {
+      if (legacyCopyText(text)) {
+        reportCopyResult(button, true);
+      } else {
+        reportCopyResult(button, false);
+      }
+    }
+  }
+
+  if ('CommandEvent' in window) {
+    document.addEventListener(
+      'command',
+      (event) => {
+        const cmdEvent = event as Event & { command?: string; source?: HTMLElement | null };
+        if (
+          cmdEvent.command === '--copy' &&
+          cmdEvent.source instanceof HTMLButtonElement &&
+          event.target instanceof HTMLElement
+        ) {
+          void executeCopy(cmdEvent.source, event.target);
+        }
+      },
+      true,
+    );
+  } else {
+    document.addEventListener('click', (event) => {
+      if (event.defaultPrevented) return;
+      const button = (event.target as Element | null)?.closest<HTMLButtonElement>(
+        'button[command="--copy"]',
+      );
+      if (!button) return;
+      const targetId = button.getAttribute('commandfor');
+      const target = targetId ? document.getElementById(targetId) : null;
+      if (target) void executeCopy(button, target);
     });
   }
 </script>

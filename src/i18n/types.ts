@@ -138,8 +138,14 @@ export interface TranslationDictionary {
     sundayLabel: string;
     sundayHours: string;
     phoneLabel: string;
+    callCta: string;
     whatsappLabel: string;
     emailLabel: string;
+    emailCta: string;
+    copyPhoneAria: string;
+    copyEmailAria: string;
+    copiedLabel: string;
+    copyFailedLabel: string;
     googleMapsCta: string;
     wazeCta: string;
     mapTitle: string;
