@@ -1,6 +1,7 @@
 ---
 import { getGasWebAppUrl, SITE_CONFIG } from '../config/site';
 import { instagramFallback } from '../data/instagramFallback';
+import { withBase } from '../lib/paths';
 import type { Locale, TranslationDictionary } from '../i18n/types';
 
 interface Props {
@@ -10,6 +11,7 @@ interface Props {
 
 const { locale, t } = Astro.props;
 const gasUrl = getGasWebAppUrl();
+const baseUrl = import.meta.env.BASE_URL || '/';
 ---
 
 <section id="instagram" class="scroll-mt-20 border-b border-white/8 bg-asphalt py-18 sm:py-22">
@@ -47,6 +49,7 @@ const gasUrl = getGasWebAppUrl();
       id="instagram-showcase-grid"
       data-locale={locale}
       data-gas-url={gasUrl}
+      data-base-url={baseUrl}
       data-open-aria={t.instagram.openPostAria}
       class="mt-10 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4"
     >
@@ -62,7 +65,7 @@ const gasUrl = getGasWebAppUrl();
             class="group relative aspect-square overflow-hidden rounded-2xl border border-white/10 bg-carbon"
           >
             <img
-              src={item.imageUrl}
+              src={withBase(item.imageUrl, baseUrl)}
               alt={caption}
               width="800"
               height="800"
@@ -101,12 +104,14 @@ const gasUrl = getGasWebAppUrl();
     fetchInstagramShowcase,
     readCachedInstagramShowcase,
   } from '../lib/instagramApi';
+  import { withBase } from '../lib/paths';
   import type { InstagramShowcaseItem } from '../data/instagramFallback';
 
   const grid = document.getElementById('instagram-showcase-grid');
   if (grid) {
     const locale = grid.dataset.locale === 'en' ? 'en' : 'pt';
     const gasUrl = grid.dataset.gasUrl ?? '';
+    const baseUrl = grid.dataset.baseUrl ?? '/';
     const openAria = grid.dataset.openAria ?? 'Instagram';
 
     const renderItems = (items: InstagramShowcaseItem[]) => {
@@ -124,7 +129,7 @@ const gasUrl = getGasWebAppUrl();
           'group relative aspect-square overflow-hidden rounded-2xl border border-white/10 bg-carbon';
 
         const img = document.createElement('img');
-        img.src = item.imageUrl;
+        img.src = withBase(item.imageUrl, baseUrl);
         img.alt = caption;
         img.width = 800;
         img.height = 800;
@@ -133,7 +138,7 @@ const gasUrl = getGasWebAppUrl();
         img.className =
           'h-full w-full object-cover transition-transform duration-500 group-hover:scale-105';
         img.addEventListener('error', () => {
-          img.src = '/images/work-oil.jpg';
+          img.src = withBase('/images/work-oil.jpg', baseUrl);
         });
 
         const overlay = document.createElement('div');

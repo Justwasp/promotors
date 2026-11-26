@@ -1,6 +1,7 @@
 ---
 import '../styles/global.css';
 import { SITE_CONFIG } from '../config/site';
+import { withBase } from '../lib/paths';
 import type { Locale, TranslationDictionary } from '../i18n/types';
 
 interface Props {
@@ -9,11 +10,15 @@ interface Props {
 }
 
 const { locale, t } = Astro.props;
-const canonicalPath = locale === 'en' ? '/en/' : '/';
-const canonicalUrl = `${SITE_CONFIG.siteUrl}${canonicalPath}`;
-const ptUrl = `${SITE_CONFIG.siteUrl}/`;
-const enUrl = `${SITE_CONFIG.siteUrl}/en/`;
-const ogImageUrl = `${SITE_CONFIG.siteUrl}/images/hero-motorcycle.jpg`;
+const siteOrigin = (Astro.site?.origin ?? SITE_CONFIG.siteUrl).replace(/\/$/, '');
+const ptPath = withBase('/');
+const enPath = withBase('/en/');
+const canonicalPath = locale === 'en' ? enPath : ptPath;
+const canonicalUrl = `${siteOrigin}${canonicalPath}`;
+const ptUrl = `${siteOrigin}${ptPath}`;
+const enUrl = `${siteOrigin}${enPath}`;
+const faviconHref = withBase('/favicon.svg');
+const ogImageUrl = `${siteOrigin}${withBase('/images/hero-motorcycle.jpg')}`;
 
 const jsonLd = {
   '@context': 'https://schema.org',
@@ -67,7 +72,7 @@ const jsonLd = {
     <meta name="description" content={t.meta.description} />
     <meta name="theme-color" content="#0B0D0E" />
 
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/svg+xml" href={faviconHref} />
     <link rel="canonical" href={canonicalUrl} />
     <link rel="alternate" hreflang="pt-PT" href={ptUrl} />
     <link rel="alternate" hreflang="en" href={enUrl} />

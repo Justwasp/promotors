@@ -1,5 +1,6 @@
 ---
 import { SITE_CONFIG } from '../config/site';
+import { withBase } from '../lib/paths';
 import type { Locale, TranslationDictionary } from '../i18n/types';
 
 interface Props {
@@ -8,7 +9,9 @@ interface Props {
 }
 
 const { locale, t } = Astro.props;
-const homeHref = locale === 'en' ? '/en/' : '/';
+const ptHref = withBase('/');
+const enHref = withBase('/en/');
+const homeHref = locale === 'en' ? enHref : ptHref;
 ---
 
 <header class="sticky top-0 z-40 border-b border-white/8 bg-asphalt/88 backdrop-blur-md">
@@ -47,7 +50,7 @@ const homeHref = locale === 'en' ? '/en/' : '/';
         aria-label="Language"
       >
         <a
-          href="/"
+          href={ptHref}
           class:list={[
             'rounded-md px-2.5 py-1.5 transition-colors',
             locale === 'pt'
@@ -59,7 +62,7 @@ const homeHref = locale === 'en' ? '/en/' : '/';
           PT
         </a>
         <a
-          href="/en/"
+          href={enHref}
           class:list={[
             'rounded-md px-2.5 py-1.5 transition-colors',
             locale === 'en'
