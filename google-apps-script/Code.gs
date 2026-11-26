@@ -507,6 +507,11 @@ function formatSlotLabel_(timeSlot, lang) {
   return timeSlot === 'afternoon' ? 'Tarde (14:00–19:00)' : 'Manhã (09:00–13:00)';
 }
 
+function getEmailDomain_(email) {
+  const parts = String(email || '').trim().toLowerCase().split('@');
+  return parts.length === 2 ? parts[1] : '';
+}
+
 function sendBookingEmails_(bookingId, booking) {
   const config = getConfigMap_();
   const workshopEmail = config.WORKSHOP_EMAIL || 'geral@promotors.pt';
@@ -518,16 +523,40 @@ function sendBookingEmails_(bookingId, booking) {
     return false;
   }
 
+  let senderEmail = '';
+  try {
+    senderEmail = Session.getEffectiveUser().getEmail() || '';
+  } catch (err) {
+    Logger.log('Could not read effective user email: ' + err);
+  }
+
   const slotLabelPt = formatSlotLabel_(booking.timeSlot, 'pt');
   const clientDigits = booking.phone.replace(/\D+/g, '');
   const clientWaHref = 'https://wa.me/' + (clientDigits.length === 9 ? '351' + clientDigits : clientDigits);
 
-  // 1. Workshop email
+  // 1. Workshop email (multipart plain text + clean light transactional HTML)
   const workshopSubject =
-    '[Pro Motors] Nova marcação ' + bookingId + ' — ' + booking.bike + ' (' + booking.preferredDate + ')';
+    'Nova marcação ' + bookingId + ' — ' + booking.bike + ' (' + booking.preferredDate + ')';
+
+  const workshopText = [
+    'Nova marcação registada no site Pro Motors',
+    '',
+    'Referência: ' + bookingId,
+    'Cliente: ' + booking.name,
+    'Telemóvel / WhatsApp: ' + booking.phone,
+    'E-mail: ' + booking.email,
+    'Moto / Scooter: ' + booking.bike,
+    'Serviços: ' + booking.serviceLabels.join(', '),
+    'Data & Período: ' + booking.preferredDate + ' · ' + slotLabelPt,
+    'Observações: ' + (booking.notes || '—'),
+    'Idioma: ' + booking.lang.toUpperCase(),
+    '',
+    'Responder no WhatsApp: ' + clientWaHref,
+  ].join('\n');
+
   const workshopHtml =
-    '<div style="font-family:Arial,sans-serif;max-width:600px;background:#0B0D0E;color:#F5F7F6;padding:24px;border-radius:12px;">' +
-    '<h2 style="margin:0 0 12px;color:#52AF3D;">Nova Marcação — ' + escapeHtml_(bookingId) + '</h2>' +
+    '<div style="font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Arial,sans-serif;max-width:580px;margin:0 auto;color:#111827;background:#ffffff;border:1px solid #e5e7eb;border-top:4px solid #52AF3D;border-radius:8px;padding:24px;">' +
+    '<h2 style="margin:0 0 14px;font-size:18px;color:#111827;">Nova Marcação — ' + escapeHtml_(bookingId) + '</h2>' +
     '<table style="width:100%;border-collapse:collapse;font-size:14px;">' +
     rowHtml_('Cliente', booking.name) +
     rowHtml_('Telemóvel / WhatsApp', booking.phone) +
@@ -538,16 +567,18 @@ function sendBookingEmails_(bookingId, booking) {
     rowHtml_('Observações', booking.notes || '—') +
     rowHtml_('Idioma', booking.lang.toUpperCase()) +
     '</table>' +
-    '<div style="margin-top:20px;">' +
-    '<a href="' + escapeHtml_(clientWaHref) + '" style="display:inline-block;background:#52AF3D;color:#0B0D0E;text-decoration:none;font-weight:700;padding:10px 18px;border-radius:8px;">Responder no WhatsApp</a>' +
-    '</div>' +
+    '<p style="margin:18px 0 0;font-size:14px;">' +
+    '<a href="' + escapeHtml_(clientWaHref) + '" style="color:#15803d;font-weight:600;">Responder no WhatsApp</a>' +
+    '</p>' +
     '</div>';
 
   try {
     MailApp.sendEmail({
       to: workshopEmail,
+      name: 'Pro Motors Montijo',
       replyTo: booking.email,
       subject: workshopSubject,
+      body: workshopText,
       htmlBody: workshopHtml,
     });
   } catch (err) {
@@ -555,7 +586,7 @@ function sendBookingEmails_(bookingId, booking) {
     return false;
   }
 
-  // 2. Client confirmation email
+  // 2. Client confirmation email (multipart plain text + lightweight transactional HTML for inbox deliverability)
   if (!sendClientConfirmation || quota < 2) {
     return true;
   }
@@ -563,41 +594,93 @@ function sendBookingEmails_(bookingId, booking) {
   const isEn = booking.lang === 'en';
   const slotLabelClient = formatSlotLabel_(booking.timeSlot, booking.lang);
   const clientSubject = isEn
-    ? 'Pro Motors — We received your booking request (' + bookingId + ')'
-    : 'Pro Motors — Recebemos o seu pedido de marcação (' + bookingId + ')';
+    ? 'Booking request ' + bookingId + ' — Pro Motors Montijo'
+    : 'Pedido de marcação ' + bookingId + ' — Pro Motors Montijo';
+
+  const clientText = isEn
+    ? [
+        'Hello ' + booking.name + ',',
+        '',
+        'We have received your service booking request at Pro Motors Montijo.',
+        'Please note this request is subject to final slot availability confirmation by our workshop.',
+        '',
+        'Reference: ' + bookingId,
+        'Bike / Scooter: ' + booking.bike,
+        'Services: ' + booking.serviceLabels.join(', '),
+        'Preferred Date: ' + booking.preferredDate + ' (' + slotLabelClient + ')',
+        '',
+        'Workshop details:',
+        'Address: ' + WORKSHOP_ADDRESS,
+        'Hours: Mon-Fri 09:00-19:00 | Sat 09:00-13:00',
+        'Phone: ' + WORKSHOP_PHONE,
+        'WhatsApp: +351 968 505 075',
+        'Email: ' + workshopEmail,
+        '',
+        'Thank you,',
+        'Pro Motors Montijo',
+      ].join('\n')
+    : [
+        'Olá ' + booking.name + ',',
+        '',
+        'Recebemos o seu pedido de marcação na Pro Motors Montijo.',
+        'Este pedido aguarda confirmação final de disponibilidade pela oficina.',
+        '',
+        'Referência: ' + bookingId,
+        'Moto / Scooter: ' + booking.bike,
+        'Serviços: ' + booking.serviceLabels.join(', '),
+        'Data & Período: ' + booking.preferredDate + ' (' + slotLabelClient + ')',
+        '',
+        'Contactos da oficina:',
+        'Morada: ' + WORKSHOP_ADDRESS,
+        'Horário: Seg-Sex 09:00-19:00 | Sáb 09:00-13:00',
+        'Telefone: ' + WORKSHOP_PHONE,
+        'WhatsApp: +351 968 505 075',
+        'E-mail: ' + workshopEmail,
+        '',
+        'Obrigado,',
+        'Pro Motors Montijo',
+      ].join('\n');
 
   const clientHtml =
-    '<div style="font-family:Arial,sans-serif;max-width:600px;background:#0B0D0E;color:#F5F7F6;padding:24px;border-radius:12px;">' +
-    '<div style="font-size:20px;font-weight:800;letter-spacing:1px;margin-bottom:16px;"><span style="color:#52AF3D;">PRO</span> MOTORS</div>' +
-    '<h2 style="margin:0 0 8px;color:#F5F7F6;">' +
-    (isEn ? 'Booking Request Received' : 'Pedido de Marcação Recebido') +
-    '</h2>' +
-    '<p style="color:#9BA6A1;margin:0 0 18px;">' +
-    (isEn
-      ? 'Hello ' + escapeHtml_(booking.name) + ', we have logged your booking request. Please note this request is subject to final slot availability confirmation by our workshop.'
-      : 'Olá ' + escapeHtml_(booking.name) + ', registámos o seu pedido de marcação. Este pedido aguarda confirmação final de disponibilidade pela oficina.') +
+    '<div style="font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Arial,sans-serif;max-width:580px;margin:0 auto;color:#111827;background:#ffffff;border:1px solid #e5e7eb;border-top:4px solid #52AF3D;border-radius:8px;padding:24px;line-height:1.5;">' +
+    '<p style="margin:0 0 12px;font-size:16px;font-weight:700;letter-spacing:0.5px;"><span style="color:#52AF3D;">PRO</span> MOTORS</p>' +
+    '<p style="margin:0 0 12px;font-size:15px;">' +
+    (isEn ? 'Hello ' + escapeHtml_(booking.name) + ',' : 'Olá ' + escapeHtml_(booking.name) + ',') +
     '</p>' +
-    '<table style="width:100%;border-collapse:collapse;font-size:14px;">' +
+    '<p style="margin:0 0 16px;font-size:14px;color:#374151;">' +
+    (isEn
+      ? 'We have received your service booking request at Pro Motors Montijo. Please note this request is subject to final slot availability confirmation by our workshop.'
+      : 'Recebemos o seu pedido de marcação na Pro Motors Montijo. Este pedido aguarda confirmação final de disponibilidade pela oficina.') +
+    '</p>' +
+    '<table style="width:100%;border-collapse:collapse;font-size:14px;margin-bottom:18px;">' +
     rowHtml_(isEn ? 'Reference' : 'Referência', bookingId) +
     rowHtml_(isEn ? 'Bike / Scooter' : 'Moto / Scooter', booking.bike) +
     rowHtml_(isEn ? 'Services' : 'Serviços', booking.serviceLabels.join(', ')) +
     rowHtml_(isEn ? 'Preferred Date' : 'Data & Período', booking.preferredDate + ' · ' + slotLabelClient) +
     '</table>' +
-    '<p style="color:#9BA6A1;font-size:13px;margin:20px 0 12px;">' +
-    '<strong>' + (isEn ? 'Address:' : 'Morada:') + '</strong> ' + WORKSHOP_ADDRESS + '<br>' +
+    '<p style="margin:0;font-size:13px;color:#4b5563;">' +
+    '<strong>' + (isEn ? 'Address:' : 'Morada:') + '</strong> ' + escapeHtml_(WORKSHOP_ADDRESS) + '<br>' +
     '<strong>' + (isEn ? 'Hours:' : 'Horário:') + '</strong> Seg–Sex 09:00–19:00 · Sáb 09:00–13:00<br>' +
-    '<strong>' + (isEn ? 'Phone:' : 'Telefone:') + '</strong> ' + WORKSHOP_PHONE +
+    '<strong>' + (isEn ? 'Phone:' : 'Telefone:') + '</strong> ' + escapeHtml_(WORKSHOP_PHONE) + ' · WhatsApp: +351 968 505 075' +
     '</p>' +
-    '<a href="https://wa.me/' + WORKSHOP_WHATSAPP_DIGITS + '" style="display:inline-block;background:#52AF3D;color:#0B0D0E;text-decoration:none;font-weight:700;padding:10px 18px;border-radius:8px;">WhatsApp Pro Motors</a>' +
     '</div>';
 
+  // Avoid cross-domain From vs Reply-To mismatch (a common spam trigger on free @gmail.com senders)
+  const senderDomain = getEmailDomain_(senderEmail);
+  const workshopDomain = getEmailDomain_(workshopEmail);
+  const clientMailOptions = {
+    to: booking.email,
+    name: 'Pro Motors Montijo',
+    subject: clientSubject,
+    body: clientText,
+    htmlBody: clientHtml,
+  };
+  if (!senderDomain || senderDomain === workshopDomain) {
+    clientMailOptions.replyTo = workshopEmail;
+  }
+
   try {
-    MailApp.sendEmail({
-      to: booking.email,
-      replyTo: workshopEmail,
-      subject: clientSubject,
-      htmlBody: clientHtml,
-    });
+    MailApp.sendEmail(clientMailOptions);
   } catch (err) {
     Logger.log('Client confirmation email failed: ' + err);
   }
@@ -608,8 +691,8 @@ function sendBookingEmails_(bookingId, booking) {
 function rowHtml_(label, value) {
   return (
     '<tr>' +
-    '<td style="padding:8px 0;border-bottom:1px solid #262C2E;color:#9BA6A1;width:38%;">' + escapeHtml_(label) + '</td>' +
-    '<td style="padding:8px 0;border-bottom:1px solid #262C2E;color:#F5F7F6;font-weight:600;">' + escapeHtml_(value) + '</td>' +
+    '<td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#6b7280;width:38%;">' + escapeHtml_(label) + '</td>' +
+    '<td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#111827;font-weight:600;">' + escapeHtml_(value) + '</td>' +
     '</tr>'
   );
 }
