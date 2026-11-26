@@ -1,0 +1,28 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Header from '../../components/Header.astro';
+import Hero from '../../components/Hero.astro';
+import Services from '../../components/Services.astro';
+import InstagramShowcase from '../../components/InstagramShowcase.astro';
+import BookingForm from '../../components/BookingForm.astro';
+import Footer from '../../components/Footer.astro';
+import PrivacyModal from '../../components/PrivacyModal.astro';
+import MobileActionBar from '../../components/MobileActionBar.astro';
+import { getTranslations } from '../../i18n/utils';
+
+const locale = 'en';
+const t = getTranslations(locale);
+---
+
+<BaseLayout locale={locale} t={t}>
+  <Header locale={locale} t={t} />
+  <main id="main-content">
+    <Hero t={t} />
+    <Services t={t} />
+    <InstagramShowcase locale={locale} t={t} />
+    <BookingForm locale={locale} t={t} />
+  </main>
+  <Footer t={t} />
+  <PrivacyModal t={t} />
+  <MobileActionBar t={t} />
+</BaseLayout>

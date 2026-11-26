@@ -1,0 +1,16 @@
+# Build & Astro
+dist/
+.astro/
+
+# Dependencies
+node_modules/
+
+# Environment variables (never commit real endpoints/secrets)
+.env
+.env.*
+!.env.example
+
+# OS / Editor
+.DS_Store
+*.log
+npm-debug.log*

@@ -1,0 +1,1235 @@
+---
+import { getGasWebAppUrl, SITE_CONFIG } from '../config/site';
+import { SERVICES } from '../data/services';
+import type { Locale, TranslationDictionary } from '../i18n/types';
+
+interface Props {
+  locale: Locale;
+  t: TranslationDictionary;
+}
+
+const { locale, t } = Astro.props;
+const gasUrl = getGasWebAppUrl();
+
+const clientConfig = {
+  locale,
+  gasUrl,
+  whatsappDigits: SITE_CONFIG.contact.whatsappDigits,
+  serviceLabels: Object.fromEntries(
+    SERVICES.map((s) => [s.id, t.services.items[s.id].shortLabel]),
+  ),
+  slots: {
+    morning: t.booking.timeSlotMorning,
+    afternoon: t.booking.timeSlotAfternoon,
+  },
+  copy: {
+    submitCta: t.booking.submitCta,
+    submittingCta: t.booking.submittingCta,
+    saturdayNote: t.booking.saturdayNote,
+    datePlaceholder: t.booking.datePlaceholder,
+    emailSentNote: t.booking.success.emailSentNote,
+    emailPendingNote: t.booking.success.emailPendingNote,
+    errors: t.booking.errors,
+  },
+};
+---
+
+<section id="marcacao" class="scroll-mt-20 border-b border-white/8 bg-asphalt py-18 sm:py-22">
+  <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <div class="grid gap-8 lg:grid-cols-12 lg:items-start">
+      <!-- Left Column: Online Booking Form / Confirmation Panel -->
+      <div class="lg:col-span-7">
+        <div class="rounded-3xl border border-white/10 bg-carbon p-6 sm:p-8">
+          <p class="font-mono text-xs font-medium tracking-widest text-pro-green uppercase">
+            {t.booking.eyebrow}
+          </p>
+          <h2 class="mt-2 font-display text-4xl font-extrabold tracking-tight uppercase sm:text-5xl">
+            {t.booking.heading}
+          </h2>
+          <p class="mt-2.5 text-sm leading-relaxed text-text-secondary sm:text-base">
+            {t.booking.subheading}
+          </p>
+
+          <!-- Booking Form -->
+          <form
+            id="promotors-booking-form"
+            novalidate
+            class="mt-7 space-y-6"
+            data-config={JSON.stringify(clientConfig)}
+          >
+            <!-- Honeypot anti-spam field -->
+            <div class="visually-hidden" aria-hidden="true">
+              <label for="booking-website">Website</label>
+              <input id="booking-website" name="website" type="text" tabindex="-1" autocomplete="off" />
+            </div>
+
+            <!-- 1. Service multi-select chips -->
+            <fieldset>
+              <legend class="text-sm font-semibold text-text-primary">
+                {t.booking.servicesLabel} <span class="text-pro-green">*</span>
+              </legend>
+              <p class="mt-1 text-xs text-text-secondary">{t.booking.servicesHint}</p>
+              <div class="mt-3 flex flex-wrap gap-2.5" id="booking-service-chips">
+                {SERVICES.map((service) => {
+                  const label = t.services.items[service.id].shortLabel;
+                  return (
+                    <label class="cursor-pointer">
+                      <input
+                        type="checkbox"
+                        name="services"
+                        value={service.id}
+                        class="peer sr-only"
+                      />
+                      <span class="inline-flex items-center gap-1.5 rounded-full border border-white/12 bg-asphalt/70 px-3.5 py-2 text-xs font-semibold text-text-secondary transition-all select-none hover:border-white/30 hover:text-text-primary peer-checked:border-pro-green peer-checked:bg-pro-green peer-checked:text-asphalt peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-pro-green sm:text-sm">
+                        <span class="hidden peer-checked:inline" aria-hidden="true">✓</span>
+                        <span>{label}</span>
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+              <div id="services-error" class="pm-field-error" role="alert">
+                {t.booking.errors.servicesRequired}
+              </div>
+            </fieldset>
+
+            <!-- 2. Motorcycle / Scooter -->
+            <div>
+              <label for="booking-bike" class="block text-sm font-semibold text-text-primary">
+                {t.booking.bikeLabel} <span class="text-pro-green">*</span>
+              </label>
+              <input
+                id="booking-bike"
+                name="bike"
+                type="text"
+                required
+                minlength="2"
+                maxlength="120"
+                placeholder={t.booking.bikePlaceholder}
+                aria-invalid="false"
+                data-error="bike-error"
+                class="pm-input mt-2"
+              />
+              <div id="bike-error" class="pm-field-error">
+                {t.booking.errors.bikeRequired}
+              </div>
+            </div>
+
+            <!-- 3. Preferred Date (Custom Precision Garage DatePicker) & Time Window -->
+            <div class="grid gap-4 sm:grid-cols-2">
+              <div class="relative" id="datepicker-root">
+                <label for="booking-date-trigger" class="block text-sm font-semibold text-text-primary">
+                  {t.booking.dateLabel} <span class="text-pro-green">*</span>
+                </label>
+                <span id="date-hint" class="mt-0.5 block text-xs text-text-secondary">
+                  {t.booking.dateHint}
+                </span>
+
+                <input id="booking-date" name="preferredDate" type="hidden" value="" />
+
+                <button
+                  id="booking-date-trigger"
+                  type="button"
+                  aria-haspopup="dialog"
+                  aria-expanded="false"
+                  aria-controls="booking-datepicker-popover"
+                  aria-describedby="date-hint"
+                  aria-invalid="false"
+                  data-error="date-error"
+                  class="pm-input mt-2 flex cursor-pointer items-center justify-between gap-2 text-left"
+                >
+                  <span id="booking-date-display" class="truncate text-[#6b7671]">
+                    {t.booking.datePlaceholder}
+                  </span>
+                  <svg
+                    class="h-4.5 w-4.5 shrink-0 text-pro-green"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    aria-hidden="true"
+                  >
+                    <rect x="3" y="4" width="18" height="18" rx="3" />
+                    <path stroke-linecap="round" d="M16 2v4M8 2v4M3 10h18" />
+                  </svg>
+                </button>
+
+                <div id="date-error" class="pm-field-error">
+                  {t.booking.errors.dateInvalid}
+                </div>
+
+                <!-- Interactive Calendar Popover -->
+                <div
+                  id="booking-datepicker-popover"
+                  hidden
+                  role="region"
+                  aria-label={t.booking.calendarAriaLabel}
+                  class="absolute left-0 z-30 mt-2 w-[min(92vw,20rem)] rounded-2xl border border-white/15 bg-carbon p-4 shadow-[0_20px_50px_rgba(0,0,0,0.65)]"
+                >
+                  <div class="flex items-center justify-between gap-2">
+                    <button
+                      id="datepicker-prev"
+                      type="button"
+                      aria-label={t.booking.calendarPrevMonth}
+                      class="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border border-white/10 bg-asphalt text-text-primary transition-colors hover:border-pro-green/60 disabled:cursor-not-allowed disabled:opacity-30"
+                    >
+                      ‹
+                    </button>
+                    <span
+                      id="datepicker-month-title"
+                      class="font-display text-lg font-bold tracking-wide text-text-primary uppercase"
+                    />
+                    <button
+                      id="datepicker-next"
+                      type="button"
+                      aria-label={t.booking.calendarNextMonth}
+                      class="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border border-white/10 bg-asphalt text-text-primary transition-colors hover:border-pro-green/60"
+                    >
+                      ›
+                    </button>
+                  </div>
+
+                  <div
+                    id="datepicker-weekdays"
+                    class="mt-3 grid grid-cols-7 gap-1 text-center font-mono text-[11px] font-medium text-text-secondary"
+                  />
+
+                  <div id="datepicker-days" class="mt-1.5 grid grid-cols-7 gap-1" />
+
+                  <div class="mt-3 flex items-center justify-between border-t border-white/8 pt-2.5 font-mono text-[11px] text-text-secondary">
+                    <span class="inline-flex items-center gap-1.5">
+                      <span class="h-1.5 w-1.5 rounded-full bg-pro-green" aria-hidden="true" />
+                      <span>{t.booking.calendarSaturdayLegend}</span>
+                    </span>
+                    <span class="text-white/40">{t.booking.calendarSundayLegend}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label for="booking-slot" class="block text-sm font-semibold text-text-primary">
+                  {t.booking.timeSlotLabel} <span class="text-pro-green">*</span>
+                </label>
+                <span id="slot-hint" class="mt-0.5 block text-xs text-text-secondary">
+                  {t.hero.hoursCompact}
+                </span>
+                <select
+                  id="booking-slot"
+                  name="timeSlot"
+                  required
+                  aria-describedby="slot-hint"
+                  aria-invalid="false"
+                  data-error="slot-error"
+                  class="pm-input mt-2"
+                >
+                  <option value="morning">{t.booking.timeSlotMorning}</option>
+                  <option value="afternoon">{t.booking.timeSlotAfternoon}</option>
+                </select>
+                <div id="slot-error" class="pm-field-error">
+                  {t.booking.errors.slotUnavailable}
+                </div>
+                <p id="saturday-helper" hidden class="mt-1.5 text-xs font-medium text-pro-green">
+                  {t.booking.saturdayNote}
+                </p>
+              </div>
+            </div>
+
+            <!-- 4. Contact Info -->
+            <div class="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label for="booking-name" class="block text-sm font-semibold text-text-primary">
+                  {t.booking.nameLabel} <span class="text-pro-green">*</span>
+                </label>
+                <input
+                  id="booking-name"
+                  name="name"
+                  type="text"
+                  required
+                  minlength="2"
+                  maxlength="100"
+                  autocomplete="name"
+                  placeholder={t.booking.namePlaceholder}
+                  aria-invalid="false"
+                  data-error="name-error"
+                  class="pm-input mt-2"
+                />
+                <div id="name-error" class="pm-field-error">
+                  {t.booking.errors.nameRequired}
+                </div>
+              </div>
+
+              <div>
+                <label for="booking-phone" class="block text-sm font-semibold text-text-primary">
+                  {t.booking.phoneLabel} <span class="text-pro-green">*</span>
+                </label>
+                <input
+                  id="booking-phone"
+                  name="phone"
+                  type="tel"
+                  required
+                  minlength="9"
+                  maxlength="32"
+                  autocomplete="tel"
+                  placeholder={t.booking.phonePlaceholder}
+                  aria-invalid="false"
+                  data-error="phone-error"
+                  class="pm-input mt-2"
+                />
+                <div id="phone-error" class="pm-field-error">
+                  {t.booking.errors.phoneInvalid}
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label for="booking-email" class="block text-sm font-semibold text-text-primary">
+                {t.booking.emailLabel} <span class="text-pro-green">*</span>
+              </label>
+              <input
+                id="booking-email"
+                name="email"
+                type="email"
+                required
+                maxlength="160"
+                autocomplete="email"
+                placeholder={t.booking.emailPlaceholder}
+                aria-invalid="false"
+                data-error="email-error"
+                class="pm-input mt-2"
+              />
+              <div id="email-error" class="pm-field-error">
+                {t.booking.errors.emailInvalid}
+              </div>
+            </div>
+
+            <!-- 5. Notes -->
+            <div>
+              <label for="booking-notes" class="block text-sm font-semibold text-text-primary">
+                {t.booking.notesLabel}
+              </label>
+              <textarea
+                id="booking-notes"
+                name="notes"
+                rows="3"
+                maxlength="800"
+                placeholder={t.booking.notesPlaceholder}
+                class="pm-input mt-2 resize-y"
+              />
+            </div>
+
+            <!-- 6. RGPD / GDPR consent -->
+            <div>
+              <label class="flex items-start gap-3 text-xs leading-relaxed text-text-secondary sm:text-sm">
+                <input
+                  id="booking-gdpr"
+                  name="gdprAccepted"
+                  type="checkbox"
+                  required
+                  aria-invalid="false"
+                  data-error="gdpr-error"
+                  class="mt-0.5 h-4.5 w-4.5 shrink-0 rounded border-white/20 bg-asphalt accent-pro-green"
+                />
+                <span>
+                  {t.booking.gdprPrefix}
+                  <button
+                    type="button"
+                    data-open-privacy
+                    class="font-semibold text-pro-green underline decoration-pro-green/50 underline-offset-2 hover:text-pro-green-hover"
+                  >
+                    {t.booking.gdprLinkText}
+                  </button>
+                  {t.booking.gdprSuffix}
+                </span>
+              </label>
+              <div id="gdpr-error" class="pm-field-error">
+                {t.booking.errors.gdprRequired}
+              </div>
+            </div>
+
+            <!-- Form-level Error / WhatsApp Recovery Banner -->
+            <div
+              id="booking-fallback-banner"
+              hidden
+              role="alert"
+              class="rounded-2xl border border-status-warning/35 bg-status-warning/10 p-4 text-sm"
+            >
+              <p id="booking-fallback-title" class="font-bold text-text-primary"></p>
+              <p id="booking-fallback-body" class="mt-1 text-text-secondary"></p>
+              <a
+                id="booking-fallback-wa"
+                href={SITE_CONFIG.contact.whatsappHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="mt-3 inline-flex items-center gap-2 rounded-xl bg-pro-green px-4 py-2.5 text-sm font-bold text-asphalt transition-colors hover:bg-pro-green-hover"
+              >
+                <span>{t.booking.errors.whatsappFallbackCta}</span>
+                <span aria-hidden="true">↗</span>
+              </a>
+            </div>
+
+            <div>
+              <button
+                id="booking-submit-btn"
+                type="submit"
+                class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-pro-green px-6 py-3.5 text-base font-bold text-asphalt shadow-[0_10px_28px_rgba(82,175,61,0.22)] transition-all hover:bg-pro-green-hover disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <span id="booking-submit-text">{t.booking.submitCta}</span>
+                <span aria-hidden="true">→</span>
+              </button>
+              <p class="mt-2.5 text-center text-xs text-text-secondary">
+                {t.booking.responseNote}
+              </p>
+            </div>
+          </form>
+
+          <!-- Confirmation State -->
+          <div
+            id="booking-success-panel"
+            hidden
+            tabindex="-1"
+            class="mt-7 rounded-2xl border border-pro-green/45 bg-asphalt/80 p-6"
+          >
+            <div class="flex flex-wrap items-center justify-between gap-3">
+              <div class="inline-flex items-center gap-2 text-pro-green">
+                <span class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-pro-green text-sm font-extrabold text-asphalt">
+                  ✓
+                </span>
+                <span class="font-mono text-xs font-semibold tracking-wider uppercase">
+                  {t.booking.success.eyebrow}
+                </span>
+              </div>
+              <span
+                id="success-booking-id"
+                class="rounded-lg border border-pro-green/40 bg-pro-green/12 px-3 py-1 font-mono text-sm font-bold text-pro-green"
+              >
+                PM-2026-0001
+              </span>
+            </div>
+
+            <h3 class="mt-4 font-display text-3xl font-extrabold uppercase text-text-primary">
+              {t.booking.success.title}
+            </h3>
+            <p class="mt-1.5 text-sm text-text-secondary">
+              {t.booking.success.subtitle}
+            </p>
+            <p id="success-email-note" class="mt-2 text-xs font-medium text-pro-green">
+              {t.booking.success.emailSentNote}
+            </p>
+
+            <dl class="mt-5 grid gap-2.5 rounded-xl border border-white/8 bg-carbon p-4 text-sm">
+              <div class="flex justify-between gap-4 border-b border-white/6 pb-2">
+                <dt class="text-text-secondary">{t.booking.success.bikeLabel}</dt>
+                <dd id="success-bike" class="text-right font-semibold text-text-primary"></dd>
+              </div>
+              <div class="flex justify-between gap-4 border-b border-white/6 pb-2">
+                <dt class="text-text-secondary">{t.booking.success.servicesLabel}</dt>
+                <dd id="success-services" class="text-right font-semibold text-text-primary"></dd>
+              </div>
+              <div class="flex justify-between gap-4">
+                <dt class="text-text-secondary">{t.booking.success.dateLabel}</dt>
+                <dd id="success-date" class="text-right font-semibold text-text-primary"></dd>
+              </div>
+            </dl>
+
+            <div class="mt-6 flex flex-col gap-3 sm:flex-row">
+              <a
+                id="success-whatsapp-link"
+                href={SITE_CONFIG.contact.whatsappHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-pro-green px-5 py-3 text-sm font-bold text-asphalt transition-colors hover:bg-pro-green-hover"
+              >
+                <svg class="h-4.5 w-4.5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <path d="M12.03 2a9.97 9.97 0 0 0-8.54 15.1L2 22l5.05-1.45A9.97 9.97 0 1 0 12.03 2Zm5.82 14.08c-.24.69-1.42 1.32-1.97 1.4-.52.08-1.18.11-1.9-.12-.44-.14-1-.33-1.72-.64-3.03-1.31-5-4.38-5.15-4.58-.15-.2-1.23-1.63-1.23-3.11 0-1.48.77-2.2 1.05-2.5.27-.3.6-.38.8-.38h.58c.19 0 .44-.07.69.52.25.6.85 2.08.92 2.23.08.15.13.33.03.53-.1.2-.15.33-.3.5-.15.18-.32.4-.45.54-.15.15-.3.31-.13.61.18.3.78 1.29 1.68 2.09 1.15 1.03 2.13 1.35 2.43 1.5.3.15.48.13.66-.08.18-.2.75-.88.95-1.18.2-.3.4-.25.68-.15.27.1 1.75.83 2.05.98.3.15.5.22.58.35.08.12.08.72-.17 1.4Z" />
+                </svg>
+                <span>{t.booking.success.whatsappCta}</span>
+              </a>
+
+              <button
+                id="booking-reset-btn"
+                type="button"
+                class="inline-flex items-center justify-center rounded-xl border border-white/15 bg-carbon px-4 py-3 text-sm font-semibold text-text-primary transition-colors hover:border-white/30"
+              >
+                {t.booking.success.newBookingCta}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: Workshop Contacts & Map Card -->
+      <div id="contactos" class="scroll-mt-24 lg:col-span-5">
+        <div class="rounded-3xl border border-white/10 bg-carbon p-6 sm:p-8">
+          <p class="font-mono text-xs font-medium tracking-widest text-pro-green uppercase">
+            {t.location.eyebrow}
+          </p>
+          <h2 class="mt-2 font-display text-3xl font-extrabold tracking-tight uppercase sm:text-4xl">
+            {t.location.heading}
+          </h2>
+
+          <div class="mt-5 space-y-4 text-sm">
+            <a
+              href={SITE_CONFIG.address.googleMapsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="group flex items-start gap-3 rounded-xl transition-colors"
+            >
+              <svg class="mt-0.5 h-5 w-5 shrink-0 text-pro-green" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 21s-6-5.686-6-10a6 6 0 1 1 12 0c0 4.314-6 10-6 10Z" />
+                <circle cx="12" cy="11" r="2.2" />
+              </svg>
+              <div>
+                <p class="font-semibold text-text-primary transition-colors group-hover:text-pro-green">
+                  {SITE_CONFIG.address.street} <span aria-hidden="true" class="text-xs text-pro-green">↗</span>
+                </p>
+                <p class="text-text-secondary">
+                  {SITE_CONFIG.address.postalCode} {SITE_CONFIG.address.city} ·{' '}
+                  {locale === 'en' ? SITE_CONFIG.address.landmarkEn : SITE_CONFIG.address.landmarkPt}
+                </p>
+              </div>
+            </a>
+
+            <div class="flex items-start gap-3">
+              <svg class="mt-0.5 h-5 w-5 shrink-0 text-pro-green" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <circle cx="12" cy="12" r="9" />
+                <path stroke-linecap="round" d="M12 7v5l3 2" />
+              </svg>
+              <dl class="w-full space-y-1 text-xs sm:text-sm">
+                <div class="flex justify-between gap-2">
+                  <dt class="text-text-secondary">{t.location.weekdaysLabel}</dt>
+                  <dd class="font-mono font-medium text-text-primary">{t.location.weekdaysHours}</dd>
+                </div>
+                <div class="flex justify-between gap-2">
+                  <dt class="text-text-secondary">{t.location.saturdayLabel}</dt>
+                  <dd class="font-mono font-medium text-text-primary">{t.location.saturdayHours}</dd>
+                </div>
+                <div class="flex justify-between gap-2">
+                  <dt class="text-text-secondary">{t.location.sundayLabel}</dt>
+                  <dd class="font-mono text-text-secondary">{t.location.sundayHours}</dd>
+                </div>
+              </dl>
+            </div>
+          </div>
+
+          <!-- Embedded free Google Maps iframe -->
+          <div class="mt-6 overflow-hidden rounded-2xl border border-white/10 bg-asphalt">
+            <iframe
+              title={t.location.mapTitle}
+              src={`https://maps.google.com/maps?q=${SITE_CONFIG.address.googleMapsQuery}&t=&z=16&ie=UTF8&iwloc=&output=embed`}
+              width="100%"
+              height="220"
+              loading="lazy"
+              referrerpolicy="no-referrer-when-downgrade"
+              class="block w-full border-0 grayscale-[35%] contrast-[1.05] invert-[90%] hue-rotate-180"
+            />
+          </div>
+
+          <div class="mt-4 grid grid-cols-2 gap-2.5">
+            <a
+              href={SITE_CONFIG.address.googleMapsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="inline-flex items-center justify-center gap-1.5 rounded-xl border border-white/12 bg-asphalt px-3 py-2.5 text-xs font-semibold text-text-primary transition-colors hover:border-pro-green/50"
+            >
+              <span>{t.location.googleMapsCta}</span>
+              <span aria-hidden="true">↗</span>
+            </a>
+            <a
+              href={SITE_CONFIG.address.wazeUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="inline-flex items-center justify-center gap-1.5 rounded-xl border border-white/12 bg-asphalt px-3 py-2.5 text-xs font-semibold text-text-primary transition-colors hover:border-pro-green/50"
+            >
+              <span>{t.location.wazeCta}</span>
+              <span aria-hidden="true">↗</span>
+            </a>
+          </div>
+
+          <!-- Direct Contact Cards -->
+          <div class="mt-6 space-y-2.5 border-t border-white/8 pt-5 text-sm">
+            <a
+              href={SITE_CONFIG.contact.whatsappHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="flex items-center justify-between rounded-xl border border-white/8 bg-asphalt/70 px-4 py-3 transition-colors hover:border-pro-green/50"
+            >
+              <div>
+                <p class="text-xs text-text-secondary">{t.location.whatsappLabel}</p>
+                <p class="font-mono font-semibold text-text-primary">{SITE_CONFIG.contact.whatsappDisplay}</p>
+              </div>
+              <span class="rounded-lg bg-pro-green/15 px-2.5 py-1 text-xs font-bold text-pro-green">
+                WhatsApp ↗
+              </span>
+            </a>
+
+            <div class="flex items-center justify-between gap-2 rounded-xl border border-white/8 bg-asphalt/70 px-4 py-3 transition-colors hover:border-pro-green/50">
+              <a
+                href={SITE_CONFIG.contact.phoneHref}
+                class="group flex min-w-0 flex-1 items-center justify-between gap-2"
+              >
+                <div class="min-w-0">
+                  <p class="text-xs text-text-secondary">{t.location.phoneLabel}</p>
+                  <p id="contact-phone-value" class="truncate font-mono font-semibold text-text-primary group-hover:text-pro-green">
+                    {SITE_CONFIG.contact.phoneDisplay}
+                  </p>
+                </div>
+                <span class="shrink-0 rounded-lg bg-pro-green/15 px-2.5 py-1 text-xs font-bold text-pro-green transition-colors group-hover:bg-pro-green group-hover:text-asphalt">
+                  {t.location.callCta}
+                </span>
+              </a>
+              <span class="pm-copy-wrap shrink-0">
+                <button
+                  type="button"
+                  {...({ command: '--copy', commandfor: 'contact-phone-value' } as Record<string, string>)}
+                  data-copied-label={t.location.copiedLabel}
+                  data-failed-label={t.location.copyFailedLabel}
+                  aria-label={t.location.copyPhoneAria}
+                  class="pm-copy-btn inline-flex cursor-pointer items-center justify-center rounded-lg border border-white/10 bg-carbon text-text-secondary transition-colors hover:border-pro-green/50 hover:text-text-primary"
+                >
+                  <svg class="pm-icon-copy h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <rect x="9" y="9" width="13" height="13" rx="2" />
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                  </svg>
+                  <svg class="pm-icon-check h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                </button>
+                <span class="pm-copy-tip" role="status"></span>
+              </span>
+            </div>
+
+            <div class="flex items-center justify-between gap-2 rounded-xl border border-white/8 bg-asphalt/70 px-4 py-3 transition-colors hover:border-pro-green/50">
+              <a
+                href={SITE_CONFIG.contact.emailHref}
+                class="group flex min-w-0 flex-1 items-center justify-between gap-2"
+              >
+                <div class="min-w-0">
+                  <p class="text-xs text-text-secondary">{t.location.emailLabel}</p>
+                  <p id="contact-email-value" class="truncate font-mono font-semibold text-text-primary group-hover:text-pro-green">
+                    {SITE_CONFIG.contact.email}
+                  </p>
+                </div>
+                <span class="shrink-0 rounded-lg border border-white/12 bg-carbon px-2.5 py-1 text-xs font-semibold text-text-secondary transition-colors group-hover:border-pro-green/50 group-hover:text-pro-green">
+                  {t.location.emailCta} ↗
+                </span>
+              </a>
+              <span class="pm-copy-wrap shrink-0">
+                <button
+                  type="button"
+                  {...({ command: '--copy', commandfor: 'contact-email-value' } as Record<string, string>)}
+                  data-copied-label={t.location.copiedLabel}
+                  data-failed-label={t.location.copyFailedLabel}
+                  aria-label={t.location.copyEmailAria}
+                  class="pm-copy-btn inline-flex cursor-pointer items-center justify-center rounded-lg border border-white/10 bg-carbon text-text-secondary transition-colors hover:border-pro-green/50 hover:text-text-primary"
+                >
+                  <svg class="pm-icon-copy h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <rect x="9" y="9" width="13" height="13" rx="2" />
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                  </svg>
+                  <svg class="pm-icon-check h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                </button>
+                <span class="pm-copy-tip" role="status"></span>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  import { submitBooking } from '../lib/bookingApi';
+  import {
+    buildMonthGrid,
+    formatDisplayDate,
+    formatMonthTitle,
+    getWeekdayLabels,
+  } from '../lib/calendar';
+  import {
+    buildWhatsAppBookingUrl,
+    getAvailableTimeSlots,
+    getTodayLisbonIso,
+    type TimeSlot,
+  } from '../lib/schedule';
+  import { validateBookingInput, type BookingInput } from '../lib/validation';
+  import type { Locale } from '../i18n/types';
+
+  interface ClientConfig {
+    locale: Locale;
+    gasUrl: string;
+    whatsappDigits: string;
+    serviceLabels: Record<string, string>;
+    slots: { morning: string; afternoon: string };
+    copy: {
+      submitCta: string;
+      submittingCta: string;
+      saturdayNote: string;
+      datePlaceholder: string;
+      emailSentNote: string;
+      emailPendingNote: string;
+      errors: Record<string, string>;
+    };
+  }
+
+  const form = document.getElementById('promotors-booking-form') as HTMLFormElement | null;
+  if (form && form.dataset.config) {
+    const config = JSON.parse(form.dataset.config) as ClientConfig;
+    let startedAt = Date.now();
+
+    const dateInput = document.getElementById('booking-date') as HTMLInputElement;
+    const datepickerRoot = document.getElementById('datepicker-root') as HTMLDivElement;
+    const dateTrigger = document.getElementById('booking-date-trigger') as HTMLButtonElement;
+    const dateDisplay = document.getElementById('booking-date-display') as HTMLSpanElement;
+    const datePopover = document.getElementById('booking-datepicker-popover') as HTMLDivElement;
+    const datePrevBtn = document.getElementById('datepicker-prev') as HTMLButtonElement;
+    const dateNextBtn = document.getElementById('datepicker-next') as HTMLButtonElement;
+    const dateMonthTitle = document.getElementById('datepicker-month-title') as HTMLSpanElement;
+    const dateWeekdaysEl = document.getElementById('datepicker-weekdays') as HTMLDivElement;
+    const dateDaysEl = document.getElementById('datepicker-days') as HTMLDivElement;
+
+    const slotSelect = document.getElementById('booking-slot') as HTMLSelectElement;
+    const saturdayHelper = document.getElementById('saturday-helper') as HTMLParagraphElement;
+    const submitBtn = document.getElementById('booking-submit-btn') as HTMLButtonElement;
+    const submitText = document.getElementById('booking-submit-text') as HTMLSpanElement;
+
+    const fallbackBanner = document.getElementById('booking-fallback-banner') as HTMLDivElement;
+    const fallbackTitle = document.getElementById('booking-fallback-title') as HTMLParagraphElement;
+    const fallbackBody = document.getElementById('booking-fallback-body') as HTMLParagraphElement;
+    const fallbackWa = document.getElementById('booking-fallback-wa') as HTMLAnchorElement;
+
+    const successPanel = document.getElementById('booking-success-panel') as HTMLDivElement;
+    const successBookingId = document.getElementById('success-booking-id') as HTMLSpanElement;
+    const successEmailNote = document.getElementById('success-email-note') as HTMLParagraphElement;
+    const successBike = document.getElementById('success-bike') as HTMLElement;
+    const successServices = document.getElementById('success-services') as HTMLElement;
+    const successDate = document.getElementById('success-date') as HTMLElement;
+    const successWaLink = document.getElementById('success-whatsapp-link') as HTMLAnchorElement;
+    const resetBtn = document.getElementById('booking-reset-btn') as HTMLButtonElement;
+
+    // Polite live region for accessible post-interaction error announcements
+    const announcer = document.createElement('div');
+    announcer.setAttribute('aria-live', 'polite');
+    announcer.classList.add('visually-hidden');
+    document.body.append(announcer);
+
+    const todayParts = getTodayLisbonIso(new Date()).split('-').map(Number);
+    const minYear = todayParts[0] ?? 2026;
+    const minMonth = (todayParts[1] ?? 1) - 1;
+    let viewYear = minYear;
+    let viewMonth = minMonth;
+
+    // Render Monday-first weekday headers once
+    dateWeekdaysEl.replaceChildren(
+      ...getWeekdayLabels(config.locale).map((label, idx) => {
+        const span = document.createElement('span');
+        span.textContent = label;
+        if (idx === 6) span.className = 'text-white/35';
+        return span;
+      }),
+    );
+
+    const linkError = (el: HTMLElement, shown: boolean) => {
+      const errorId = el.dataset.error;
+      if (!errorId) return;
+      const ids = (el.getAttribute('aria-describedby') || '')
+        .split(/\s+/)
+        .filter((id) => id && id !== errorId);
+      if (shown) ids.push(errorId);
+      if (ids.length > 0) {
+        el.setAttribute('aria-describedby', ids.join(' '));
+      } else {
+        el.removeAttribute('aria-describedby');
+      }
+      const errorNode = document.getElementById(errorId);
+      if (errorNode) {
+        errorNode.dataset.visible = shown ? 'true' : 'false';
+      }
+    };
+
+    const setFieldInvalid = (el: HTMLElement, message?: string) => {
+      const errorId = el.dataset.error;
+      if (errorId && message) {
+        const errorNode = document.getElementById(errorId);
+        if (errorNode) errorNode.textContent = message;
+      }
+      el.setAttribute('aria-invalid', 'true');
+      el.classList.add('user-invalid-fallback');
+      el.classList.remove('user-valid-fallback');
+      linkError(el, true);
+    };
+
+    const clearFieldInvalid = (el: HTMLElement) => {
+      el.setAttribute('aria-invalid', 'false');
+      el.classList.remove('user-invalid-fallback');
+      linkError(el, false);
+    };
+
+    const updateSlotsForDate = () => {
+      const iso = dateInput.value;
+      const afternoonOption = slotSelect.querySelector<HTMLOptionElement>('option[value="afternoon"]');
+      if (!iso || !afternoonOption) return;
+
+      const slots = getAvailableTimeSlots(iso);
+      const isSaturday = slots.length === 1 && slots[0] === 'morning';
+      const isSunday = slots.length === 0;
+
+      afternoonOption.disabled = isSaturday || isSunday;
+      saturdayHelper.hidden = !isSaturday;
+
+      if (isSaturday && slotSelect.value === 'afternoon') {
+        slotSelect.value = 'morning';
+      }
+
+      if (isSunday) {
+        setFieldInvalid(dateTrigger, config.copy.errors.dateSunday);
+        announcer.textContent = config.copy.errors.dateSunday ?? '';
+      } else if (iso < getTodayLisbonIso(new Date())) {
+        setFieldInvalid(dateTrigger, config.copy.errors.datePast);
+        announcer.textContent = config.copy.errors.datePast ?? '';
+      } else {
+        clearFieldInvalid(dateTrigger);
+        dateTrigger.classList.add('user-valid-fallback');
+      }
+    };
+
+    const closeDatepicker = (restoreFocus = false) => {
+      datePopover.hidden = true;
+      dateTrigger.setAttribute('aria-expanded', 'false');
+      if (restoreFocus) dateTrigger.focus();
+    };
+
+    const renderCalendar = () => {
+      const todayIso = getTodayLisbonIso(new Date());
+      dateMonthTitle.textContent = formatMonthTitle(viewYear, viewMonth, config.locale);
+      datePrevBtn.disabled = viewYear < minYear || (viewYear === minYear && viewMonth <= minMonth);
+
+      const cells = buildMonthGrid(viewYear, viewMonth, todayIso);
+      const fragment = document.createDocumentFragment();
+
+      for (const cell of cells) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.dataset.isoDate = cell.isoDate;
+        btn.disabled = cell.disabled;
+
+        const isSelected = dateInput.value === cell.isoDate;
+        const baseClasses =
+          'relative flex h-9 w-full flex-col items-center justify-center rounded-lg text-xs font-semibold transition-colors';
+
+        if (isSelected) {
+          btn.className = `${baseClasses} bg-pro-green text-asphalt font-bold`;
+        } else if (cell.disabled) {
+          btn.className = `${baseClasses} cursor-not-allowed text-white/22 ${cell.isSunday ? 'line-through' : ''}`;
+        } else {
+          const monthTone = cell.inCurrentMonth ? 'text-text-primary' : 'text-text-secondary/50';
+          const todayRing = cell.isToday ? 'ring-1 ring-pro-green/70' : '';
+          btn.className = `${baseClasses} cursor-pointer ${monthTone} ${todayRing} hover:bg-pro-green/20 hover:text-text-primary`;
+        }
+
+        const numSpan = document.createElement('span');
+        numSpan.textContent = String(cell.dayNumber);
+        btn.append(numSpan);
+
+        if (cell.isSaturday && !cell.disabled && !isSelected) {
+          const satDot = document.createElement('span');
+          satDot.className = 'mt-0.5 h-1 w-1 rounded-full bg-pro-green';
+          satDot.setAttribute('aria-hidden', 'true');
+          btn.append(satDot);
+        }
+
+        if (!cell.disabled) {
+          btn.addEventListener('click', () => {
+            dateInput.value = cell.isoDate;
+            dateDisplay.textContent = formatDisplayDate(cell.isoDate, config.locale);
+            dateDisplay.classList.remove('text-[#6b7671]');
+            dateDisplay.classList.add('text-text-primary');
+            updateSlotsForDate();
+            closeDatepicker(true);
+          });
+        }
+
+        fragment.append(btn);
+      }
+
+      dateDaysEl.replaceChildren(fragment);
+    };
+
+    const openDatepicker = () => {
+      if (dateInput.value) {
+        const [y, m] = dateInput.value.split('-').map(Number);
+        if (y && m) {
+          viewYear = y;
+          viewMonth = m - 1;
+        }
+      }
+      renderCalendar();
+      datePopover.hidden = false;
+      dateTrigger.setAttribute('aria-expanded', 'true');
+    };
+
+    dateTrigger.addEventListener('click', () => {
+      if (datePopover.hidden) {
+        openDatepicker();
+      } else {
+        closeDatepicker();
+      }
+    });
+
+    datePrevBtn.addEventListener('click', () => {
+      viewMonth -= 1;
+      if (viewMonth < 0) {
+        viewMonth = 11;
+        viewYear -= 1;
+      }
+      renderCalendar();
+    });
+
+    dateNextBtn.addEventListener('click', () => {
+      viewMonth += 1;
+      if (viewMonth > 11) {
+        viewMonth = 0;
+        viewYear += 1;
+      }
+      renderCalendar();
+    });
+
+    document.addEventListener('click', (event) => {
+      if (!datePopover.hidden && !datepickerRoot.contains(event.target as Node)) {
+        closeDatepicker();
+      }
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && !datePopover.hidden) {
+        closeDatepicker(true);
+      }
+    });
+
+    // Sync ARIA state on blur / input without premature errors
+    form.querySelectorAll<HTMLInputElement | HTMLSelectElement>('input[data-error], select[data-error]').forEach((field) => {
+      field.addEventListener('blur', () => {
+        const invalid = field.matches(':user-invalid') || !field.validity.valid;
+        if (field.value.trim() !== '' || field.type === 'checkbox') {
+          if (invalid) {
+            setFieldInvalid(field);
+            const errEl = field.dataset.error ? document.getElementById(field.dataset.error) : null;
+            if (errEl?.textContent) announcer.textContent = errEl.textContent;
+          } else {
+            clearFieldInvalid(field);
+          }
+        }
+      });
+
+      field.addEventListener('input', () => {
+        if (field.getAttribute('aria-invalid') === 'true' && field.validity.valid) {
+          clearFieldInvalid(field);
+        }
+      });
+    });
+
+    // Listen for service card clicks from Services.astro
+    window.addEventListener('promotors:select-service', (event) => {
+      const customEvent = event as CustomEvent<{ serviceId?: string }>;
+      const serviceId = customEvent.detail?.serviceId;
+      if (!serviceId) return;
+
+      const checkbox = form.querySelector<HTMLInputElement>(
+        `input[name="services"][value="${serviceId}"]`,
+      );
+      if (checkbox) {
+        checkbox.checked = true;
+        const servicesErr = document.getElementById('services-error');
+        if (servicesErr) servicesErr.dataset.visible = 'false';
+      }
+    });
+
+    form.querySelectorAll<HTMLInputElement>('input[name="services"]').forEach((box) => {
+      box.addEventListener('change', () => {
+        const servicesErr = document.getElementById('services-error');
+        if (servicesErr) servicesErr.dataset.visible = 'false';
+      });
+    });
+
+    const collectInput = (): BookingInput => {
+      const checkedServices = Array.from(
+        form.querySelectorAll<HTMLInputElement>('input[name="services"]:checked'),
+      ).map((el) => el.value);
+
+      return {
+        services: checkedServices,
+        bike: (document.getElementById('booking-bike') as HTMLInputElement).value,
+        preferredDate: dateInput.value,
+        timeSlot: (slotSelect.value === 'afternoon' ? 'afternoon' : 'morning') as TimeSlot,
+        name: (document.getElementById('booking-name') as HTMLInputElement).value,
+        phone: (document.getElementById('booking-phone') as HTMLInputElement).value,
+        email: (document.getElementById('booking-email') as HTMLInputElement).value,
+        notes: (document.getElementById('booking-notes') as HTMLTextAreaElement).value,
+        gdprAccepted: (document.getElementById('booking-gdpr') as HTMLInputElement).checked,
+        lang: config.locale,
+        website: (document.getElementById('booking-website') as HTMLInputElement).value,
+        startedAt,
+      };
+    };
+
+    const showFallback = (title: string, body: string, waUrl: string) => {
+      fallbackTitle.textContent = title;
+      fallbackBody.textContent = body;
+      fallbackWa.href = waUrl;
+      fallbackBanner.hidden = false;
+    };
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      fallbackBanner.hidden = true;
+      closeDatepicker();
+
+      const rawInput = collectInput();
+      const validation = validateBookingInput(rawInput, getTodayLisbonIso(new Date()));
+
+      // Clear previous error indicators
+      const servicesErr = document.getElementById('services-error');
+      if (servicesErr) servicesErr.dataset.visible = 'false';
+      form.querySelectorAll<HTMLElement>('[data-error]').forEach(clearFieldInvalid);
+
+      if (!validation.valid) {
+        let firstInvalidEl: HTMLElement | null = null;
+
+        if (validation.errors.services && servicesErr) {
+          servicesErr.dataset.visible = 'true';
+          firstInvalidEl = form.querySelector<HTMLElement>('input[name="services"]');
+        }
+
+        const fieldMap: Array<[keyof typeof validation.errors, string, string]> = [
+          ['bike', 'booking-bike', config.copy.errors.bikeRequired],
+          [
+            'preferredDate',
+            'booking-date-trigger',
+            validation.errors.preferredDate === 'SUNDAY_CLOSED'
+              ? config.copy.errors.dateSunday
+              : validation.errors.preferredDate === 'PAST_DATE'
+                ? config.copy.errors.datePast
+                : config.copy.errors.dateInvalid,
+          ],
+          ['timeSlot', 'booking-slot', config.copy.errors.slotUnavailable],
+          ['name', 'booking-name', config.copy.errors.nameRequired],
+          ['phone', 'booking-phone', config.copy.errors.phoneInvalid],
+          ['email', 'booking-email', config.copy.errors.emailInvalid],
+          ['gdprAccepted', 'booking-gdpr', config.copy.errors.gdprRequired],
+        ];
+
+        for (const [key, elementId, message] of fieldMap) {
+          if (validation.errors[key]) {
+            const el = document.getElementById(elementId);
+            if (el) {
+              setFieldInvalid(el, message);
+              if (!firstInvalidEl) firstInvalidEl = el;
+            }
+          }
+        }
+
+        firstInvalidEl?.focus();
+        return;
+      }
+
+      const payload = validation.sanitized;
+      const selectedLabels = payload.services.map((id) => config.serviceLabels[id] ?? id);
+      const slotLabel = config.slots[payload.timeSlot];
+
+      const fallbackWaUrl = buildWhatsAppBookingUrl({
+        phoneNumber: config.whatsappDigits,
+        lang: config.locale,
+        bike: payload.bike,
+        serviceLabels: selectedLabels,
+        preferredDate: payload.preferredDate,
+        timeSlotLabel: slotLabel,
+        name: payload.name,
+        notes: payload.notes,
+      });
+
+      submitBtn.disabled = true;
+      submitText.textContent = config.copy.submittingCta;
+
+      try {
+        const result = await submitBooking(config.gasUrl, payload, selectedLabels);
+
+        if (result.ok && result.bookingId) {
+          const waConfirmUrl = buildWhatsAppBookingUrl({
+            phoneNumber: config.whatsappDigits,
+            lang: config.locale,
+            bookingId: result.bookingId,
+            bike: payload.bike,
+            serviceLabels: selectedLabels,
+            preferredDate: payload.preferredDate,
+            timeSlotLabel: slotLabel,
+            name: payload.name,
+            notes: payload.notes,
+          });
+
+          successBookingId.textContent = result.bookingId;
+          successEmailNote.textContent = result.emailSent
+            ? config.copy.emailSentNote
+            : config.copy.emailPendingNote;
+          successBike.textContent = payload.bike;
+          successServices.textContent = selectedLabels.join(', ');
+          successDate.textContent = `${formatDisplayDate(payload.preferredDate, config.locale)} · ${slotLabel}`;
+          successWaLink.href = waConfirmUrl;
+
+          form.hidden = true;
+          successPanel.hidden = false;
+          successPanel.focus();
+          return;
+        }
+
+        if (result.errorCode === 'NOT_CONFIGURED') {
+          showFallback(
+            config.copy.errors.notConfiguredTitle,
+            config.copy.errors.notConfiguredBody,
+            fallbackWaUrl,
+          );
+        } else if (result.errorCode === 'RATE_LIMITED') {
+          showFallback(
+            config.copy.errors.rateLimited,
+            config.copy.errors.networkFallbackBody,
+            fallbackWaUrl,
+          );
+        } else if (result.errorCode === 'TOO_FAST') {
+          showFallback(
+            config.copy.errors.tooFast,
+            config.copy.errors.networkFallbackBody,
+            fallbackWaUrl,
+          );
+        } else {
+          showFallback(
+            config.copy.errors.networkFallbackTitle,
+            config.copy.errors.networkFallbackBody,
+            fallbackWaUrl,
+          );
+        }
+      } finally {
+        submitBtn.disabled = false;
+        submitText.textContent = config.copy.submitCta;
+      }
+    });
+
+    resetBtn.addEventListener('click', () => {
+      form.reset();
+      dateInput.value = '';
+      dateDisplay.textContent = config.copy.datePlaceholder;
+      dateDisplay.classList.add('text-[#6b7671]');
+      dateDisplay.classList.remove('text-text-primary');
+      dateTrigger.classList.remove('user-valid-fallback');
+      startedAt = Date.now();
+      viewYear = minYear;
+      viewMonth = minMonth;
+      const afternoonOption = slotSelect.querySelector<HTMLOptionElement>('option[value="afternoon"]');
+      if (afternoonOption) afternoonOption.disabled = false;
+      saturdayHelper.hidden = true;
+      fallbackBanner.hidden = true;
+      form.querySelectorAll<HTMLElement>('[data-error]').forEach(clearFieldInvalid);
+      successPanel.hidden = true;
+      form.hidden = false;
+    });
+  }
+
+  // Accessible Invoker Commands copy handler (--copy) with progressive click & clipboard fallbacks
+  const copyTimers = new WeakMap<HTMLButtonElement, number>();
+  let lastCopyAnnouncement = '';
+
+  function legacyCopyText(text: string): boolean {
+    const previousFocus = document.activeElement as HTMLElement | null;
+    const field = document.createElement('textarea');
+    field.value = text;
+    field.setAttribute('readonly', '');
+    field.style.cssText = 'position:fixed;inset-block-start:0;opacity:0';
+    document.body.append(field);
+    field.select();
+    try {
+      return document.execCommand('copy');
+    } finally {
+      field.remove();
+      previousFocus?.focus({ preventScroll: true });
+    }
+  }
+
+  function reportCopyResult(button: HTMLButtonElement, ok: boolean) {
+    const tip = button.nextElementSibling as HTMLElement | null;
+    const prevTimer = copyTimers.get(button);
+    if (prevTimer) window.clearTimeout(prevTimer);
+
+    button.removeAttribute('data-copied');
+    button.removeAttribute('data-failed');
+
+    let message = ok
+      ? button.dataset.copiedLabel || 'Copied'
+      : button.dataset.failedLabel || 'Copy failed';
+    if (message === lastCopyAnnouncement) message += '\u00A0';
+    lastCopyAnnouncement = message;
+
+    if (tip) tip.textContent = '';
+    void button.offsetWidth;
+    button.setAttribute(ok ? 'data-copied' : 'data-failed', '');
+    requestAnimationFrame(() => {
+      if (tip) tip.textContent = message;
+    });
+
+    const timer = window.setTimeout(() => {
+      button.removeAttribute('data-copied');
+      button.removeAttribute('data-failed');
+      if (tip) tip.textContent = '';
+    }, 2000);
+    copyTimers.set(button, timer);
+  }
+
+  async function executeCopy(button: HTMLButtonElement, target: HTMLElement) {
+    const text = target.matches('input, textarea')
+      ? (target as HTMLInputElement | HTMLTextAreaElement).value
+      : target.innerText.trim();
+    if (!text) return;
+
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else if (!legacyCopyText(text)) {
+        throw new Error('Copy failed');
+      }
+      reportCopyResult(button, true);
+    } catch {
+      if (legacyCopyText(text)) {
+        reportCopyResult(button, true);
+      } else {
+        reportCopyResult(button, false);
+      }
+    }
+  }
+
+  if ('CommandEvent' in window) {
+    document.addEventListener(
+      'command',
+      (event) => {
+        const cmdEvent = event as Event & { command?: string; source?: HTMLElement | null };
+        if (
+          cmdEvent.command === '--copy' &&
+          cmdEvent.source instanceof HTMLButtonElement &&
+          event.target instanceof HTMLElement
+        ) {
+          void executeCopy(cmdEvent.source, event.target);
+        }
+      },
+      true,
+    );
+  } else {
+    document.addEventListener('click', (event) => {
+      if (event.defaultPrevented) return;
+      const button = (event.target as Element | null)?.closest<HTMLButtonElement>(
+        'button[command="--copy"]',
+      );
+      if (!button) return;
+      const targetId = button.getAttribute('commandfor');
+      const target = targetId ? document.getElementById(targetId) : null;
+      if (target) void executeCopy(button, target);
+    });
+  }
+</script>

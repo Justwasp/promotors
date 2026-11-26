@@ -1,0 +1,187 @@
+---
+import { getGasWebAppUrl, SITE_CONFIG } from '../config/site';
+import { instagramFallback } from '../data/instagramFallback';
+import { withBase } from '../lib/paths';
+import type { Locale, TranslationDictionary } from '../i18n/types';
+
+interface Props {
+  locale: Locale;
+  t: TranslationDictionary;
+}
+
+const { locale, t } = Astro.props;
+const gasUrl = getGasWebAppUrl();
+const baseUrl = import.meta.env.BASE_URL || '/';
+---
+
+<section id="instagram" class="scroll-mt-20 border-b border-white/8 bg-asphalt py-18 sm:py-22">
+  <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+      <div class="max-w-2xl">
+        <p class="font-mono text-xs font-medium tracking-widest text-pro-green uppercase">
+          {t.instagram.eyebrow}
+        </p>
+        <h2 class="mt-2 font-display text-4xl font-extrabold tracking-tight uppercase sm:text-5xl">
+          {t.instagram.heading}
+        </h2>
+        <p class="mt-3 text-base text-text-secondary">
+          {t.instagram.subheading}
+        </p>
+      </div>
+
+      <a
+        href={SITE_CONFIG.social.instagramUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        class="inline-flex shrink-0 items-center gap-2 self-start rounded-xl border border-white/15 bg-carbon px-4 py-2.5 text-sm font-semibold text-text-primary transition-colors hover:border-pro-green/60 hover:bg-carbon-elevated sm:self-auto"
+      >
+        <svg class="h-4 w-4 text-pro-green" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <rect x="2.5" y="2.5" width="19" height="19" rx="5" />
+          <circle cx="12" cy="12" r="4.2" />
+          <circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none" />
+        </svg>
+        <span>{t.instagram.followCta}</span>
+        <span aria-hidden="true">↗</span>
+      </a>
+    </div>
+
+    <div
+      id="instagram-showcase-grid"
+      data-locale={locale}
+      data-gas-url={gasUrl}
+      data-base-url={baseUrl}
+      data-open-aria={t.instagram.openPostAria}
+      class="mt-10 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4"
+    >
+      {instagramFallback.map((item) => {
+        const category = locale === 'en' ? item.categoryEn : item.categoryPt;
+        const caption = locale === 'en' ? item.captionEn : item.captionPt;
+        return (
+          <a
+            href={item.instagramUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={`${category}: ${caption} — ${t.instagram.openPostAria}`}
+            class="group relative aspect-square overflow-hidden rounded-2xl border border-white/10 bg-carbon"
+          >
+            <img
+              src={withBase(item.imageUrl, baseUrl)}
+              alt={caption}
+              width="800"
+              height="800"
+              loading="lazy"
+              decoding="async"
+              class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+            />
+            <div class="absolute inset-0 bg-gradient-to-t from-asphalt/95 via-asphalt/30 to-transparent" />
+            <span
+              class="absolute top-3.5 right-3.5 inline-flex h-8 w-8 items-center justify-center rounded-lg bg-asphalt/70 text-text-primary backdrop-blur-xs transition-colors group-hover:bg-pro-green group-hover:text-asphalt"
+              aria-hidden="true"
+            >
+              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="2.5" y="2.5" width="19" height="19" rx="5" />
+                <circle cx="12" cy="12" r="4.2" />
+                <circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none" />
+              </svg>
+            </span>
+            <div class="absolute inset-x-0 bottom-0 p-4">
+              <span class="inline-block rounded-full bg-pro-green px-2.5 py-0.5 text-xs font-bold text-asphalt">
+                {category}
+              </span>
+              <p class="mt-2 line-clamp-2 text-sm leading-snug font-medium text-text-primary">
+                {caption}
+              </p>
+            </div>
+          </a>
+        );
+      })}
+    </div>
+  </div>
+</section>
+
+<script>
+  import {
+    fetchInstagramShowcase,
+    readCachedInstagramShowcase,
+  } from '../lib/instagramApi';
+  import { withBase } from '../lib/paths';
+  import type { InstagramShowcaseItem } from '../data/instagramFallback';
+
+  const grid = document.getElementById('instagram-showcase-grid');
+  if (grid) {
+    const locale = grid.dataset.locale === 'en' ? 'en' : 'pt';
+    const gasUrl = grid.dataset.gasUrl ?? '';
+    const baseUrl = grid.dataset.baseUrl ?? '/';
+    const openAria = grid.dataset.openAria ?? 'Instagram';
+
+    const renderItems = (items: InstagramShowcaseItem[]) => {
+      const fragment = document.createDocumentFragment();
+      for (const item of items) {
+        const category = locale === 'en' ? item.categoryEn : item.categoryPt;
+        const caption = locale === 'en' ? item.captionEn : item.captionPt;
+
+        const card = document.createElement('a');
+        card.href = item.instagramUrl;
+        card.target = '_blank';
+        card.rel = 'noopener noreferrer';
+        card.setAttribute('aria-label', `${category}: ${caption} — ${openAria}`);
+        card.className =
+          'group relative aspect-square overflow-hidden rounded-2xl border border-white/10 bg-carbon';
+
+        const img = document.createElement('img');
+        img.src = withBase(item.imageUrl, baseUrl);
+        img.alt = caption;
+        img.width = 800;
+        img.height = 800;
+        img.loading = 'lazy';
+        img.decoding = 'async';
+        img.className =
+          'h-full w-full object-cover transition-transform duration-500 group-hover:scale-105';
+        img.addEventListener('error', () => {
+          img.src = withBase('/images/work-oil.jpg', baseUrl);
+        });
+
+        const overlay = document.createElement('div');
+        overlay.className =
+          'absolute inset-0 bg-gradient-to-t from-asphalt/95 via-asphalt/30 to-transparent';
+
+        const badge = document.createElement('span');
+        badge.setAttribute('aria-hidden', 'true');
+        badge.className =
+          'absolute top-3.5 right-3.5 inline-flex h-8 w-8 items-center justify-center rounded-lg bg-asphalt/70 text-text-primary backdrop-blur-xs transition-colors group-hover:bg-pro-green group-hover:text-asphalt';
+        badge.innerHTML =
+          '<svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2.5" y="2.5" width="19" height="19" rx="5"/><circle cx="12" cy="12" r="4.2"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>';
+
+        const body = document.createElement('div');
+        body.className = 'absolute inset-x-0 bottom-0 p-4';
+
+        const pill = document.createElement('span');
+        pill.className =
+          'inline-block rounded-full bg-pro-green px-2.5 py-0.5 text-xs font-bold text-asphalt';
+        pill.textContent = category;
+
+        const text = document.createElement('p');
+        text.className = 'mt-2 line-clamp-2 text-sm leading-snug font-medium text-text-primary';
+        text.textContent = caption;
+
+        body.append(pill, text);
+        card.append(img, overlay, badge, body);
+        fragment.append(card);
+      }
+
+      grid.replaceChildren(fragment);
+    };
+
+    if (gasUrl) {
+      const cached = readCachedInstagramShowcase();
+      if (cached && cached.length > 0) {
+        renderItems(cached);
+      }
+      fetchInstagramShowcase(gasUrl).then((fresh) => {
+        if (fresh.length > 0) {
+          renderItems(fresh);
+        }
+      });
+    }
+  }
+</script>
