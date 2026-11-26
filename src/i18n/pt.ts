@@ -26,7 +26,7 @@ export const pt: TranslationDictionary = {
     headlinePrefix: 'MECÂNICA DE MOTOS & SCOOTERS NO',
     headlineAccent: 'MONTIJO',
     subtitle:
-      'Manutenção multimarca, revisões, pneus, travões e serviço ágil para motos e scooters urbanas. R. Joaquim de Almeida, 90A.',
+      'Manutenção multimarca, revisões, pneus, travões e serviço ágil para motos e scooters urbanas.',
     primaryCta: 'Marcar Serviço',
     secondaryCta: 'WhatsApp Direto',
     imageAlt: 'Motociclo em cavalete de oficina na Pro Motors Montijo',

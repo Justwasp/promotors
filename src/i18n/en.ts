@@ -26,7 +26,7 @@ export const en: TranslationDictionary = {
     headlinePrefix: 'MOTORCYCLE & SCOOTER WORKSHOP IN',
     headlineAccent: 'MONTIJO',
     subtitle:
-      'Multi-brand maintenance, scheduled servicing, tires, brakes, and fast-turnaround care for urban bikes and scooters. R. Joaquim de Almeida, 90A.',
+      'Multi-brand maintenance, scheduled servicing, tires, brakes, and fast-turnaround care for urban bikes and scooters.',
     primaryCta: 'Book Service',
     secondaryCta: 'WhatsApp Direct',
     imageAlt: 'Motorcycle on a rear paddock stand inside Pro Motors workshop in Montijo',
